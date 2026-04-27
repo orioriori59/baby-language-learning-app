@@ -298,6 +298,27 @@ export function getChoicePlacementSoundId(choice: Choice) {
   return choice.text.length === 1 ? `letter_${choice.text}` : choice.soundId
 }
 
+export const AUDIO_ASSETS: Record<string, string[]> = {
+  ...Object.fromEntries(
+    Object.keys(phonemeText).map((letter) => [
+      `phoneme_${letter}`,
+      [1, 2, 3].map((take) => `/audio/letters/${letter}/hold-${take}.mp3`),
+    ]),
+  ),
+  ...Object.fromEntries(
+    Object.keys(letterNameText).map((letter) => [
+      `letter_${letter}`,
+      [`/audio/letters/${letter}/name.mp3`],
+    ]),
+  ),
+  ...Object.fromEntries(
+    Object.keys(wordText).map((word) => [`word_${word}`, [`/audio/words/${word}.mp3`]]),
+  ),
+  fx_pop: ['/audio/fx/pop.mp3'],
+  fx_retry: ['/audio/fx/retry.mp3'],
+  fx_word_complete: ['/audio/fx/word-complete.mp3'],
+}
+
 export const SOUND_TEXT: Record<string, string | string[]> = {
   ...Object.fromEntries(
     Object.entries(phonemeText).map(([letter, text]) => [`phoneme_${letter}`, text]),

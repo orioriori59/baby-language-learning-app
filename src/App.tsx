@@ -169,6 +169,20 @@ function App() {
     sound.current?.play(level.completionAudioId)
   }, [level.completionAudioId])
 
+  useEffect(() => {
+    const levelSoundIds = [
+      level.completionAudioId,
+      'fx_pop',
+      'fx_retry',
+      'fx_word_complete',
+      ...level.choices.flatMap((choice) => [
+        choice.soundId,
+        getChoicePlacementSoundId(choice),
+      ]),
+    ]
+    sound.current?.preload(levelSoundIds)
+  }, [level])
+
   const updateSettings = useCallback((patch: Partial<GameSettings>) => {
     setSettings((current) => ({ ...current, ...patch }))
   }, [])
@@ -285,6 +299,7 @@ function App() {
     sound.current?.stopHold()
 
     if (nearest) {
+      sound.current?.play('fx_pop')
       sound.current?.play(getChoicePlacementSoundId(choice), { placement: true })
       dispatch((current) =>
         gameReducer(current, {
@@ -327,6 +342,7 @@ function App() {
     }
 
     sound.current?.unlock()
+    sound.current?.play('fx_pop')
     sound.current?.play(getChoicePlacementSoundId(choice), { placement: true })
     dispatch((current) =>
       gameReducer(current, {
@@ -341,7 +357,10 @@ function App() {
     if (!isLevelComplete(gameState, level)) return
 
     const timer = window.setTimeout(() => {
-      sound.current?.play(level.completionAudioId)
+      sound.current?.play('fx_word_complete')
+      if (level.completionAudioId.startsWith('word_')) {
+        window.setTimeout(() => sound.current?.play(level.completionAudioId), 520)
+      }
       dispatch((current) => gameReducer(current, { type: 'COMPLETE_LEVEL' }))
       setProgress((current) => ({
         lastLevelId: level.id,

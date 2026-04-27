@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:audio": "node scripts/generate-audio-pack.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.11.0",

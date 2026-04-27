@@ -1,4 +1,4 @@
-import { SOUND_TEXT } from './content'
+import { AUDIO_ASSETS, SOUND_TEXT } from './content'
 import type { GameSettings } from './types'
 
 const HOLD_INTERVAL_MS = 470
@@ -7,10 +7,12 @@ const JUMPY_RATES = [1.05, 1.2, 1.12, 1.26, 1.14]
 
 export class SoundController {
   private audioContext: AudioContext | null = null
+  private buffers = new Map<string, AudioBuffer>()
   private holdTimer: number | null = null
   private settings: GameSettings
   private lastPlayAt = 0
   private playStep = 0
+  private assetStep = 0
 
   constructor(settings: GameSettings) {
     this.settings = settings
@@ -44,7 +46,7 @@ export class SoundController {
 
   startHold(soundId: string) {
     this.stopHold()
-    this.play(soundId)
+    this.play(soundId, { held: true })
 
     this.holdTimer = window.setInterval(() => {
       this.play(soundId, { held: true })
@@ -62,8 +64,72 @@ export class SoundController {
     if (this.settings.muted || this.settings.volume <= 0) return
 
     this.unlock()
-    this.playPop(options.held ? this.nextToneFrequency() : options.placement ? 560 : 420)
-    this.speak(this.pickText(soundId), options)
+    const didPlayAsset = this.playAsset(soundId, options)
+
+    if (!didPlayAsset) {
+      this.playPop(options.held ? this.nextToneFrequency() : options.placement ? 560 : 420)
+      this.speak(this.pickText(soundId), options)
+    }
+  }
+
+  preload(soundIds: string[]) {
+    for (const soundId of soundIds) {
+      for (const src of AUDIO_ASSETS[soundId] ?? []) {
+        void this.loadBuffer(src)
+      }
+    }
+  }
+
+  private playAsset(soundId: string, options: { held?: boolean; placement?: boolean }) {
+    const assets = AUDIO_ASSETS[soundId]
+    if (!assets?.length || !this.audioContext) return false
+
+    const src =
+      assets[
+        options.held || assets.length > 1
+          ? this.assetStep++ % assets.length
+          : 0
+      ]
+
+    void this.loadBuffer(src).then((buffer) => {
+      if (!buffer) {
+        this.playPop(options.held ? this.nextToneFrequency() : options.placement ? 560 : 420)
+        this.speak(this.pickText(soundId), options)
+        return
+      }
+
+      if (!buffer || !this.audioContext || this.settings.muted || this.settings.volume <= 0) {
+        return
+      }
+
+      const source = this.audioContext.createBufferSource()
+      const gain = this.audioContext.createGain()
+      source.buffer = buffer
+      source.playbackRate.value = options.held ? this.getAssetRate() : 1
+      gain.gain.value = this.settings.volume
+      source.connect(gain)
+      gain.connect(this.audioContext.destination)
+      source.start()
+    })
+
+    return true
+  }
+
+  private async loadBuffer(src: string) {
+    if (!this.audioContext) return null
+    const cached = this.buffers.get(src)
+    if (cached) return cached
+
+    try {
+      const response = await fetch(src)
+      if (!response.ok) return null
+      const arrayBuffer = await response.arrayBuffer()
+      const buffer = await this.audioContext.decodeAudioData(arrayBuffer)
+      this.buffers.set(src, buffer)
+      return buffer
+    } catch {
+      return null
+    }
   }
 
   private playPop(frequency: number) {
@@ -131,6 +197,14 @@ export class SoundController {
       return this.settings.voiceIntensity === 'extra' ? pitch + 0.12 : pitch
     }
     return this.settings.voiceIntensity === 'extra' ? 1.5 : 1.28
+  }
+
+  private getAssetRate() {
+    if (this.settings.voiceIntensity === 'calm') return 0.98
+    const rates = this.settings.voiceIntensity === 'extra'
+      ? [1.05, 1.16, 0.98, 1.22]
+      : [1, 1.1, 0.96, 1.14]
+    return rates[this.assetStep % rates.length]
   }
 
   private stopSpeech() {

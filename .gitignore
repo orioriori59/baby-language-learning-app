@@ -18,6 +18,7 @@ dist-ssr
 .idea
 .DS_Store
 .playwright-cli/
+.audio-tmp/
 *.suo
 *.ntvs*
 *.njsproj
