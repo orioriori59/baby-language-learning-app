@@ -77,6 +77,35 @@ const wordText: Record<string, string> = {
   zip: 'zip',
 }
 
+const letterNameText: Record<string, string> = {
+  a: 'ay',
+  b: 'bee',
+  c: 'see',
+  d: 'dee',
+  e: 'ee',
+  f: 'eff',
+  g: 'gee',
+  h: 'aitch',
+  i: 'eye',
+  j: 'jay',
+  k: 'kay',
+  l: 'ell',
+  m: 'em',
+  n: 'en',
+  o: 'oh',
+  p: 'pee',
+  q: 'cue',
+  r: 'arr',
+  s: 'ess',
+  t: 'tee',
+  u: 'you',
+  v: 'vee',
+  w: 'double you',
+  x: 'ex',
+  y: 'why',
+  z: 'zee',
+}
+
 function colorFor(text: string) {
   const seed = [...text].reduce((total, char) => total + char.charCodeAt(0), 0)
   return palette[seed % palette.length]
@@ -276,7 +305,7 @@ export const SOUND_TEXT: Record<string, string | string[]> = {
   ...Object.fromEntries(
     Object.keys(phonemeText).map((letter) => [
       `letter_${letter}`,
-      letter.toUpperCase(),
+      letterNameText[letter],
     ]),
   ),
   ...Object.fromEntries(
