@@ -1,10 +1,41 @@
 export type Difficulty =
   | 'letters'
+  | 'final-letters'
   | 'missing-letter'
   | 'cvc-word'
   | 'sight-word'
   | 'syllable'
   | 'nikkud-word'
+  | 'patah-qamats'
+  | 'hiriq'
+  | 'tsere-segol'
+  | 'holam'
+  | 'qubuts-shuruk'
+  | 'mixed-a-i-e'
+  | 'mixed-o-u'
+  | 'first-reading'
+
+export type CategoryId =
+  | 'letters'
+  | 'final-letters'
+  | 'patah-qamats'
+  | 'hiriq'
+  | 'tsere-segol'
+  | 'holam'
+  | 'qubuts-shuruk'
+  | 'mixed-a-i-e'
+  | 'mixed-o-u'
+  | 'first-reading'
+
+export type VowelId =
+  | 'patah'
+  | 'qamats'
+  | 'hiriq'
+  | 'tsere'
+  | 'segol'
+  | 'holam'
+  | 'qubuts'
+  | 'shuruk'
 
 export type ChoiceKind = 'letter' | 'syllable' | 'word'
 
@@ -17,7 +48,7 @@ export type LevelKind =
   | 'nikkud-word-build'
 
 export type Category = {
-  id: string
+  id: CategoryId
   title: string
   description: string
   order: number
@@ -52,7 +83,7 @@ export type Choice = {
 export type Level = {
   id: string
   title: string
-  categoryId: string
+  categoryId: CategoryId
   categoryTitle: string
   levelKind: LevelKind
   order: number

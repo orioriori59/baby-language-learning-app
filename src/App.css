@@ -8,7 +8,7 @@
     radial-gradient(circle at 12% 16%, rgba(255, 208, 94, 0.22), transparent 28%),
     radial-gradient(circle at 88% 22%, rgba(79, 191, 103, 0.18), transparent 24%),
     linear-gradient(135deg, #fbf7ef 0%, #eef7ff 52%, #fff4f4 100%);
-  touch-action: none;
+  touch-action: auto;
   user-select: none;
 }
 
@@ -462,6 +462,7 @@
   gap: clamp(12px, 2vh, 22px);
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(18px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  touch-action: none;
   animation: gameEnter 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -986,42 +987,18 @@ input:focus-visible {
   z-index: 2;
   min-height: 56px;
   display: grid;
-  grid-template-columns: 54px 1fr 1fr;
+  grid-template-columns: 54px;
+  justify-content: start;
   align-items: center;
-  gap: 10px;
   padding: 10px 18px 0;
   color: #213b6f;
   font-size: 22px;
   font-weight: 950;
 }
 
-.phone-hud span {
-  justify-self: center;
-  min-height: 42px;
-  min-width: 86px;
-  border-radius: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.75);
-  box-shadow: 0 8px 18px rgba(42, 52, 72, 0.12);
-  direction: ltr;
-}
-
 .phone-hud svg {
   width: 27px;
   height: 27px;
-}
-
-.phone-hud span:first-of-type svg {
-  color: #258bf8;
-  fill: #63b4ff;
-}
-
-.phone-hud span:last-of-type svg {
-  color: #e94b4f;
-  fill: #ff6d6f;
 }
 
 .mini-icon {
@@ -1237,8 +1214,13 @@ input:focus-visible {
 .stage-path {
   grid-template-rows: auto 1fr;
   gap: 0;
+  height: 100svh;
   padding: max(8px, env(safe-area-inset-top)) 0 max(22px, env(safe-area-inset-bottom));
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .stage-path .path-hero {

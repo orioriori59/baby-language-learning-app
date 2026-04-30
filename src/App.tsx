@@ -9,8 +9,6 @@ import {
 import {
   ArrowLeft,
   Check,
-  Gem,
-  Heart,
   Lock,
   Play,
   RotateCcw,
@@ -730,6 +728,7 @@ function StagePath({
   recommendedLevelId,
   onStartLevel,
 }: StagePathProps) {
+  const recommendedNodeRef = useRef<HTMLButtonElement | null>(null)
   const completed = new Set(completedLevelIds)
   const completedCount = LEVELS.filter((level) => completed.has(level.id)).length
   const recommendedLevel = levelById(recommendedLevelId) ?? LEVELS[0]
@@ -751,8 +750,15 @@ function StagePath({
     return `${path} C ${previous.x} ${controlY}, ${point.x} ${controlY}, ${point.x} ${point.y}`
   }, '')
 
+  useEffect(() => {
+    recommendedNodeRef.current?.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+    })
+  }, [recommendedLevelId])
+
   return (
-    <section className="stage-path" aria-label="שביל השלבים">
+    <section className="stage-path" aria-label="שביל השלבים" data-testid="stage-path">
       <header
         className="path-hero"
         style={{ '--active-category-color': activeCategory.color } as React.CSSProperties}
@@ -772,8 +778,6 @@ function StagePath({
           <button className="mini-icon" type="button" aria-label="הגדרות">
             <Settings aria-hidden="true" />
           </button>
-          <span><Gem aria-hidden="true" />316</span>
-          <span><Heart aria-hidden="true" />5</span>
         </div>
 
         <div className="phone-title">
@@ -837,7 +841,14 @@ function StagePath({
               return (
                 <button
                   key={level.id}
+                  ref={isNext ? recommendedNodeRef : undefined}
                   type="button"
+                  data-testid="level-node"
+                  data-level-id={level.id}
+                  data-level-index={index + 1}
+                  data-level-status={
+                    isCompleted ? 'completed' : isNext ? 'next' : 'locked'
+                  }
                   className={[
                     'level-dot',
                     isCompleted ? 'completed' : '',
