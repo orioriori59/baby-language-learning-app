@@ -900,6 +900,8 @@ function StagePath({
               const isUnlocked = isCompleted || isNext
               const point = trailPoints[index]
               const revealIndex = Math.min(Math.abs(index - recommendedIndex), 8)
+              const solutionText = level.target.display
+              const solutionLength = stripNikkud(solutionText).length
 
               return (
                 <button
@@ -938,9 +940,24 @@ function StagePath({
                   }
                 >
                   {isNext && <em aria-hidden="true">השלב הבא</em>}
-                  <span>
+                  <span
+                    className={[
+                      'level-dot-face',
+                      isCompleted ? 'completed-face' : '',
+                      isCompleted && solutionLength > 3 ? 'solution-long' : '',
+                      isCompleted && solutionLength > 1 && solutionLength <= 3 ? 'solution-medium' : '',
+                      isCompleted && solutionLength <= 1 ? 'solution-short' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
                     {isCompleted ? (
-                      <Check aria-hidden="true" />
+                      <>
+                        <span className="completed-solution">{solutionText}</span>
+                        <span className="completed-check" aria-hidden="true">
+                          <Check />
+                        </span>
+                      </>
                     ) : isNext ? (
                       index + 1
                     ) : (

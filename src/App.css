@@ -361,7 +361,8 @@
   transform: translateY(calc(var(--node-y) + 4px)) scale(0.95);
 }
 
-.level-dot span {
+.level-dot-face {
+  position: relative;
   width: 46px;
   height: 46px;
   border-radius: 50%;
@@ -375,7 +376,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.level-dot span svg {
+.level-dot-face > svg {
   width: 22px;
   height: 22px;
 }
@@ -394,8 +395,9 @@
     0 16px 26px rgba(31, 45, 70, 0.18);
 }
 
-.level-dot.completed span {
-  background: rgba(255, 255, 255, 0.18);
+.level-dot.completed .level-dot-face {
+  background: #fff;
+  color: var(--category-color);
 }
 
 .level-dot.next {
@@ -409,7 +411,7 @@
     nextNodePulse 1.45s ease-in-out infinite;
 }
 
-.level-dot.next span {
+.level-dot.next .level-dot-face {
   background: rgba(255, 255, 255, 0.2);
 }
 
@@ -423,13 +425,65 @@
   cursor: not-allowed;
 }
 
-.level-dot.locked span,
+.level-dot.locked .level-dot-face,
 .level-dot.locked small {
   color: #8993a5;
 }
 
-.level-dot.locked span {
+.level-dot.locked .level-dot-face {
   background: rgba(255, 255, 255, 0.58);
+}
+
+.level-dot-face.completed-face {
+  overflow: visible;
+}
+
+.completed-solution {
+  max-width: 43px;
+  display: block;
+  overflow: hidden;
+  color: var(--category-color);
+  direction: rtl;
+  line-height: 1.12;
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-align: center;
+  text-overflow: clip;
+}
+
+.solution-short .completed-solution {
+  font-size: 27px;
+  line-height: 1.24;
+}
+
+.solution-medium .completed-solution {
+  font-size: 18px;
+}
+
+.solution-long .completed-solution {
+  font-size: 12px;
+}
+
+.completed-check {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--category-color);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 4px 9px rgba(31, 45, 70, 0.18);
+}
+
+.completed-check svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 4;
 }
 
 .level-dot em {
@@ -1147,14 +1201,14 @@ input:focus-visible {
   --node-y: -4px;
 }
 
-.path-phone .level-dot span {
+.path-phone .level-dot-face {
   width: 46px;
   height: 46px;
   font-size: clamp(17px, 4.5vw, 20px);
 }
 
-.path-phone .level-dot.completed span,
-.path-phone .level-dot.next span {
+.path-phone .level-dot.completed .level-dot-face,
+.path-phone .level-dot.next .level-dot-face {
   background: #fff;
   color: var(--category-color);
 }
@@ -2321,7 +2375,7 @@ input:focus-visible {
     border-radius: 50%;
   }
 
-  .path-phone .level-dot span {
+  .path-phone .level-dot-face {
     width: 46px;
     height: 46px;
   }
