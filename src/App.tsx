@@ -97,6 +97,53 @@ function choiceLabel(choice: Choice) {
   return choice.text
 }
 
+function sameOrder(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function acceptedChoiceOrder(levelId: string) {
+  const level = levelById(levelId) ?? LEVELS[0]
+  const choiceIds = new Set(level.choices.map((choice) => choice.id))
+  const acceptedIds: string[] = []
+
+  for (const slot of level.target.slots) {
+    if (slot.fixed) continue
+    const accepted = slot.accepts.find((choiceId) => choiceIds.has(choiceId))
+    if (accepted && !acceptedIds.includes(accepted)) acceptedIds.push(accepted)
+  }
+
+  return acceptedIds
+}
+
+function createChoiceOrder(levelId: string, previousOrder: string[] = []) {
+  const level = levelById(levelId) ?? LEVELS[0]
+  const baseOrder = level.choices.map((choice) => choice.id)
+  const answerOrder = acceptedChoiceOrder(levelId)
+
+  if (baseOrder.length < 2) return baseOrder
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const shuffled = [...baseOrder]
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(Math.random() * (index + 1))
+      ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+    }
+
+    if (
+      !sameOrder(shuffled, baseOrder) &&
+      !sameOrder(shuffled, answerOrder) &&
+      !sameOrder(shuffled, previousOrder)
+    ) {
+      return shuffled
+    }
+  }
+
+  const offset = baseOrder.length > 2 && previousOrder.length === baseOrder.length && sameOrder(baseOrder, previousOrder)
+    ? 2
+    : 1
+  return [...baseOrder.slice(offset), ...baseOrder.slice(0, offset)]
+}
+
 function tileClass(choice: Choice, isActive: boolean, dragStatus?: DragState['status']) {
   return [
     'letter-tile',
@@ -134,6 +181,9 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [parentGateStarted, setParentGateStarted] = useState(false)
   const [entryLevelId, setEntryLevelId] = useState<string | null>(null)
+  const [choiceOrder, setChoiceOrder] = useState<string[]>(() =>
+    createChoiceOrder(progress.lastLevelId),
+  )
   const dragRef = useRef<DragState | null>(null)
   const slotRefs = useRef<Record<string, HTMLSpanElement | null>>({})
   const trayRefs = useRef<Record<string, HTMLButtonElement | null>>({})
@@ -224,6 +274,7 @@ function App() {
     (levelId = recommendedLevelId) => {
       sound.current?.unlock()
       setEntryLevelId(null)
+      setChoiceOrder((current) => createChoiceOrder(levelId, current))
       setProgress((current) => ({ ...current, lastLevelId: levelId }))
       dispatch(createInitialGameState(levelId))
     },
@@ -238,6 +289,7 @@ function App() {
 
   const restartPack = useCallback(() => {
     const nextProgress = { lastLevelId: LEVELS[0].id, completedLevelIds: [] }
+    setChoiceOrder((current) => createChoiceOrder(LEVELS[0].id, current))
     setProgress(nextProgress)
     dispatch(createInitialGameState(LEVELS[0].id))
   }, [])
@@ -529,11 +581,21 @@ function App() {
     }
 
     setProgress((current) => ({ ...current, lastLevelId: nextLevelId }))
+    setChoiceOrder((current) => createChoiceOrder(nextLevelId, current))
     dispatch(createInitialGameState(nextLevelId))
   }, [gameState.levelId])
 
   const placedChoiceIds = new Set(Object.values(gameState.slots))
-  const availableChoices = level.choices.filter(
+  const orderedChoices = useMemo(() => {
+    const choicesById = new Map(level.choices.map((choice) => [choice.id, choice]))
+    const ordered = choiceOrder
+      .map((choiceId) => choicesById.get(choiceId))
+      .filter((choice): choice is Choice => Boolean(choice))
+    const missing = level.choices.filter((choice) => !choiceOrder.includes(choice.id))
+
+    return [...ordered, ...missing]
+  }, [choiceOrder, level])
+  const availableChoices = orderedChoices.filter(
     (choice) => !placedChoiceIds.has(choice.id),
   )
   const activeChoice = level.choices.find((choice) => choice.id === drag?.choiceId)

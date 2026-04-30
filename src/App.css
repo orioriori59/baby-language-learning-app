@@ -331,6 +331,7 @@
   color: #fff;
   background: linear-gradient(180deg, #d8dee8, #aab3c2);
   box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--category-color) 42%, #ffffff),
     inset 0 -10px 0 rgba(0, 0, 0, 0.12),
     0 16px 26px rgba(31, 45, 70, 0.18);
   cursor: pointer;
@@ -385,6 +386,10 @@
 
 .level-dot.completed {
   background: linear-gradient(180deg, #64cf79, #33a850);
+  box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--category-color) 52%, #ffffff),
+    inset 0 -10px 0 rgba(0, 0, 0, 0.12),
+    0 16px 26px rgba(31, 45, 70, 0.18);
 }
 
 .level-dot.completed span {
@@ -410,6 +415,7 @@
   color: #8993a5;
   background: linear-gradient(180deg, #eff2f6, #cdd3dc);
   box-shadow:
+    0 0 0 5px color-mix(in srgb, var(--category-color) 42%, #ffffff),
     inset 0 -10px 0 rgba(0, 0, 0, 0.08),
     0 10px 18px rgba(31, 45, 70, 0.1);
   cursor: not-allowed;
@@ -1331,7 +1337,7 @@ input:focus-visible {
 
 .path-phone .level-dot {
   position: absolute;
-  left: var(--map-x);
+  left: calc(var(--map-x) + 20px);
   top: var(--map-y);
   translate: -50% -50%;
   display: grid;
