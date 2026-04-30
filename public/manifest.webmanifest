@@ -1,7 +1,9 @@
 {
-  "name": "Tiny Phonics",
-  "short_name": "Phonics",
-  "description": "A tablet-first toddler letter sound matching game.",
+  "name": "עברית קטנה",
+  "short_name": "עברית",
+  "description": "משחק התאמת אותיות ומילים ראשונות בעברית לילדים.",
+  "lang": "he",
+  "dir": "rtl",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

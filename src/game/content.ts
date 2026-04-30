@@ -1,4 +1,11 @@
-import type { Choice, GameSettings, Level } from './types'
+import type { Category, Choice, GameSettings, Level } from './types'
+
+export const PATAH = '\u05B7'
+export const QAMATS = '\u05B8'
+
+type VowelId = 'patah' | 'qamats'
+
+type LevelDraft = Omit<Level, 'categoryTitle' | 'order'>
 
 export const DEFAULT_SETTINGS: GameSettings = {
   muted: false,
@@ -8,6 +15,30 @@ export const DEFAULT_SETTINGS: GameSettings = {
     Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
   voiceIntensity: 'jumpy',
 }
+
+export const CATEGORIES: Category[] = [
+  {
+    id: 'letters',
+    title: 'אותיות',
+    description: 'מזהים אותיות ומרכיבים מילים ראשונות בלי ניקוד.',
+    order: 1,
+    color: '#3466d9',
+  },
+  {
+    id: 'patah-qamats',
+    title: 'פתח וקמץ',
+    description: 'שני סימני ניקוד שונים שנשמעים כמו a.',
+    order: 2,
+    color: '#d77936',
+  },
+  {
+    id: 'a-words',
+    title: 'מילים עם אָ / אַ',
+    description: 'מרכיבים מילים קלות מצירופים מנוקדים מוכנים.',
+    order: 3,
+    color: '#4fbf67',
+  },
+]
 
 const palette = [
   '#4fbf67',
@@ -20,90 +51,63 @@ const palette = [
   '#d64f8c',
 ]
 
-const phonemeText: Record<string, string[]> = {
-  a: ['ah', 'aah', 'ah!'],
-  b: ['buh', 'b', 'buh!'],
-  c: ['kuh', 'k', 'kuh!'],
-  d: ['duh', 'd', 'duh!'],
-  e: ['eh', 'e', 'eh!'],
-  f: ['fff', 'fuh', 'fff!'],
-  g: ['guh', 'g', 'guh!'],
-  h: ['huh', 'h', 'huh!'],
-  i: ['ih', 'i', 'ih!'],
-  j: ['juh', 'j', 'juh!'],
-  k: ['kuh', 'k', 'kuh!'],
-  l: ['lll', 'luh', 'lll!'],
-  m: ['mmm', 'muh', 'mmm!'],
-  n: ['nnn', 'nuh', 'nnn!'],
-  o: ['aw', 'o', 'aw!'],
-  p: ['puh', 'p', 'puh!'],
-  q: ['kwuh', 'qu', 'kwuh!'],
-  r: ['rrr', 'ruh', 'rrr!'],
-  s: ['sss', 'suh', 'sss!'],
-  t: ['tuh', 't', 'tuh!'],
-  u: ['uh', 'u', 'uh!'],
-  v: ['vvv', 'vuh', 'vvv!'],
-  w: ['wuh', 'w', 'wuh!'],
-  x: ['ks', 'x', 'ks!'],
-  y: ['yuh', 'y', 'yuh!'],
-  z: ['zzz', 'zuh', 'zzz!'],
+const letterSlugs: Record<string, string> = {
+  א: 'alef',
+  ב: 'bet',
+  ג: 'gimel',
+  ד: 'dalet',
+  ה: 'he',
+  ו: 'vav',
+  ז: 'zayin',
+  ח: 'het',
+  ט: 'tet',
+  י: 'yod',
+  כ: 'kaf',
+  ך: 'final-kaf',
+  ל: 'lamed',
+  מ: 'mem',
+  ם: 'final-mem',
+  נ: 'nun',
+  ן: 'final-nun',
+  ס: 'samekh',
+  ע: 'ayin',
+  פ: 'pe',
+  ף: 'final-pe',
+  צ: 'tsadi',
+  ץ: 'final-tsadi',
+  ק: 'qof',
+  ר: 'resh',
+  ש: 'shin',
+  ת: 'tav',
 }
 
-const wordText: Record<string, string> = {
-  are: 'are',
-  bed: 'bed',
-  big: 'big',
-  cat: 'cat',
-  dog: 'dog',
-  fox: 'fox',
-  go: 'go',
-  hen: 'hen',
-  jam: 'jam',
-  kid: 'kid',
-  leg: 'leg',
-  mat: 'mat',
-  one: 'one',
-  pig: 'pig',
-  red: 'red',
-  sat: 'sat',
-  see: 'see',
-  sun: 'sun',
-  two: 'two',
-  up: 'up',
-  van: 'van',
-  vet: 'vet',
-  web: 'web',
-  yes: 'yes',
-  zip: 'zip',
+const wordSlugs: Record<string, string> = {
+  בית: 'bayit',
+  ים: 'yam',
+  דג: 'dag',
+  יד: 'yad',
+  פה: 'peh',
+  אור: 'or',
+  חלב: 'halav',
+  נר: 'ner',
+  כוס: 'kos',
+  ספר: 'sefer',
+  כדור: 'kadur',
+  תפוח: 'tapuah',
+  ילד: 'yeled',
+  ספה: 'sapa',
+  טיל: 'til',
+  ראש: 'rosh',
+  גן: 'gan',
+  חָלָב: 'halav-qamats',
+  דַג: 'dag-patah',
+  גַן: 'gan-patah',
+  יָד: 'yad-qamats',
 }
 
-const letterNameText: Record<string, string> = {
-  a: 'ay',
-  b: 'bee',
-  c: 'see',
-  d: 'dee',
-  e: 'ee',
-  f: 'eff',
-  g: 'gee',
-  h: 'aitch',
-  i: 'eye',
-  j: 'jay',
-  k: 'kay',
-  l: 'ell',
-  m: 'em',
-  n: 'en',
-  o: 'oh',
-  p: 'pee',
-  q: 'cue',
-  r: 'arr',
-  s: 'ess',
-  t: 'tee',
-  u: 'you',
-  v: 'vee',
-  w: 'double you',
-  x: 'ex',
-  y: 'why',
-  z: 'zee',
+const vowelMarks: Record<VowelId, string> = {
+  patah: PATAH,
+  qamats: QAMATS,
 }
 
 function colorFor(text: string) {
@@ -111,12 +115,51 @@ function colorFor(text: string) {
   return palette[seed % palette.length]
 }
 
+function slugForLetter(letter: string) {
+  return letterSlugs[stripNikkud(letter)] ?? `letter-${letter.codePointAt(0)?.toString(16) ?? 'unknown'}`
+}
+
+function slugForWord(word: string) {
+  return wordSlugs[word] ?? wordSlugs[stripNikkud(word)] ?? [...stripNikkud(word)].map(slugForLetter).join('-')
+}
+
+function categoryById(categoryId: string) {
+  const category = CATEGORIES.find((candidate) => candidate.id === categoryId)
+  if (!category) throw new Error(`Unknown category ${categoryId}`)
+  return category
+}
+
+export function stripNikkud(text: string) {
+  return text.replace(/[\u0591-\u05C7]/g, '')
+}
+
+export function makeSyllable(letter: string, vowel: VowelId) {
+  return {
+    id: `syllable-${slugForLetter(letter)}-${vowel}`,
+    text: `${letter}${vowelMarks[vowel]}`,
+    soundId: `he_syllable_${slugForLetter(letter)}_${vowel}`,
+    vowel,
+  }
+}
+
 function letterChoice(letter: string): Choice {
   return {
     id: letter,
     text: letter,
-    soundId: `phoneme_${letter}`,
+    soundId: `he_letter_${slugForLetter(letter)}`,
     color: colorFor(letter),
+    kind: 'letter',
+  }
+}
+
+function syllableChoice(letter: string, vowel: VowelId): Choice {
+  const syllable = makeSyllable(letter, vowel)
+  return {
+    id: syllable.id,
+    text: syllable.text,
+    soundId: syllable.soundId,
+    color: colorFor(syllable.text),
+    kind: 'syllable',
   }
 }
 
@@ -124,30 +167,42 @@ function wordChoice(word: string): Choice {
   return {
     id: word,
     text: word,
-    soundId: `word_${word}`,
+    soundId: `he_word_${slugForWord(word)}`,
     color: colorFor(word),
+    kind: 'word',
   }
 }
 
-function makeLetterLevel(letter: string, distractors: string[]): Level {
+function withCategory(draft: LevelDraft): Level {
+  const category = categoryById(draft.categoryId)
   return {
-    id: `letter-${letter}`,
-    title: `Sound ${letter}`,
+    ...draft,
+    categoryTitle: category.title,
+    order: 0,
+  }
+}
+
+function makeLetterLevel(letter: string, distractors: string[]): LevelDraft {
+  return {
+    id: `letter-${slugForLetter(letter)}`,
+    title: `האות ${letter}`,
+    categoryId: 'letters',
+    levelKind: 'letter-match',
     difficulty: 'letters',
-    promptText: `Hold ${letter}, then match it.`,
+    promptText: `גררו את ${letter} למקום שלה.`,
     target: {
       display: letter,
       slots: [
         {
-          id: `slot-${letter}`,
+          id: `slot-${slugForLetter(letter)}`,
           text: letter,
           accepts: [letter],
-          soundId: `phoneme_${letter}`,
+          soundId: `he_letter_${slugForLetter(letter)}`,
         },
       ],
     },
     choices: [letter, ...distractors].map(letterChoice),
-    completionAudioId: `letter_${letter}`,
+    completionAudioId: `he_letter_${slugForLetter(letter)}`,
   }
 }
 
@@ -155,182 +210,250 @@ function makeMissingWordLevel(
   word: string,
   missingIndex: number,
   distractors: string[],
-): Level {
+): LevelDraft {
   const letters = [...word]
   const missing = letters[missingIndex]
 
   return {
-    id: `${word}-missing-${missing}`,
-    title: `Make ${word}`,
+    id: `${slugForWord(word)}-missing-${slugForLetter(missing)}`,
+    title: `השלימו ${word}`,
+    categoryId: 'letters',
+    levelKind: 'missing-letter',
     difficulty: 'missing-letter',
-    promptText: `Put the missing letter in ${word}.`,
+    promptText: `איזו אות חסרה במילה ${word}?`,
     target: {
       display: word,
       slots: letters.map((letter, index) => ({
-        id: `${word}-${index}-${letter}`,
+        id: `${slugForWord(word)}-${index}-${slugForLetter(letter)}`,
         text: letter,
         accepts: [letter],
-        soundId: `phoneme_${letter}`,
+        soundId: `he_letter_${slugForLetter(letter)}`,
         fixed: index !== missingIndex,
       })),
     },
     choices: [missing, ...distractors].map(letterChoice),
-    completionAudioId: `word_${word}`,
+    completionAudioId: `he_word_${slugForWord(word)}`,
   }
 }
 
-function makeFullWordLevel(word: string, order?: string[]): Level {
+function makeFullWordLevel(word: string, order?: string[]): LevelDraft {
   const letters = [...word]
   const choices = order ?? [...new Set(letters)].reverse()
 
   return {
-    id: `${word}-full`,
-    title: `Build ${word}`,
+    id: `${slugForWord(word)}-full`,
+    title: `בונים ${word}`,
+    categoryId: 'letters',
+    levelKind: 'word-build',
     difficulty: 'cvc-word',
-    promptText: `Build the whole word ${word}.`,
+    promptText: `גררו את האותיות למילה ${word}.`,
     target: {
       display: word,
       slots: letters.map((letter, index) => ({
-        id: `${word}-${index}-${letter}`,
+        id: `${slugForWord(word)}-${index}-${slugForLetter(letter)}`,
         text: letter,
         accepts: [letter],
-        soundId: `phoneme_${letter}`,
+        soundId: `he_letter_${slugForLetter(letter)}`,
       })),
     },
     choices: choices.map(letterChoice),
-    completionAudioId: `word_${word}`,
+    completionAudioId: `he_word_${slugForWord(word)}`,
   }
 }
 
-function makeSightWordLevel(word: string, distractor: string): Level {
+function makeSightWordLevel(word: string, distractor: string): LevelDraft {
   return {
-    id: `${word}-sight`,
-    title: `Word ${word}`,
+    id: `${slugForWord(word)}-sight`,
+    title: `המילה ${word}`,
+    categoryId: 'letters',
+    levelKind: 'word-match',
     difficulty: 'sight-word',
-    promptText: `Match the word ${word}.`,
+    promptText: `התאימו את המילה ${word}.`,
     target: {
       display: word,
       slots: [
         {
-          id: `${word}-word`,
+          id: `${slugForWord(word)}-word`,
           text: word,
           accepts: [word],
-          soundId: `word_${word}`,
+          soundId: `he_word_${slugForWord(word)}`,
         },
       ],
     },
     choices: [word, distractor].map(wordChoice),
-    completionAudioId: `word_${word}`,
+    completionAudioId: `he_word_${slugForWord(word)}`,
   }
 }
 
-export const LEVELS: Level[] = [
-  makeLetterLevel('a', ['m']),
-  makeLetterLevel('m', ['s']),
-  makeLetterLevel('c', ['t']),
-  makeLetterLevel('t', ['s']),
-  makeMissingWordLevel('cat', 1, ['m', 't']),
-  makeFullWordLevel('cat', ['c', 'a', 't']),
-  makeFullWordLevel('mat', ['m', 'a', 't']),
+function makeSyllableLevel(
+  letter: string,
+  vowel: VowelId,
+  distractors: Array<[string, VowelId]>,
+): LevelDraft {
+  const syllable = makeSyllable(letter, vowel)
+  return {
+    id: `${syllable.id}-match`,
+    title: `${syllable.text}`,
+    categoryId: 'patah-qamats',
+    levelKind: 'syllable-match',
+    difficulty: 'syllable',
+    promptText: `גררו את ${syllable.text} ושמעו את הצליל.`,
+    target: {
+      display: syllable.text,
+      slots: [
+        {
+          id: `slot-${syllable.id}`,
+          text: syllable.text,
+          accepts: [syllable.id],
+          soundId: syllable.soundId,
+        },
+      ],
+    },
+    choices: [syllableChoice(letter, vowel), ...distractors.map(([nextLetter, nextVowel]) => syllableChoice(nextLetter, nextVowel))],
+    completionAudioId: syllable.soundId,
+  }
+}
 
-  makeLetterLevel('s', ['n']),
-  makeLetterLevel('u', ['a']),
-  makeLetterLevel('n', ['m']),
-  makeFullWordLevel('sun', ['s', 'u', 'n']),
-  makeFullWordLevel('sat', ['s', 'a', 't']),
+function makeNikkudWordLevel(
+  word: string,
+  syllables: Array<{ letter: string; vowel?: VowelId }>,
+  distractors: Array<{ letter: string; vowel: VowelId }>,
+): LevelDraft {
+  const choices = [
+    ...syllables
+      .filter((part): part is { letter: string; vowel: VowelId } => Boolean(part.vowel))
+      .map((part) => syllableChoice(part.letter, part.vowel)),
+    ...distractors.map((part) => syllableChoice(part.letter, part.vowel)),
+  ]
 
-  makeLetterLevel('d', ['p']),
-  makeLetterLevel('o', ['a']),
-  makeLetterLevel('g', ['c']),
-  makeMissingWordLevel('dog', 0, ['b', 'p']),
-  makeFullWordLevel('dog', ['d', 'o', 'g']),
+  return {
+    id: `${slugForWord(word)}-nikkud`,
+    title: `בונים ${word}`,
+    categoryId: 'a-words',
+    levelKind: 'nikkud-word-build',
+    difficulty: 'nikkud-word',
+    promptText: `גררו את הצירופים המנוקדים למילה ${word}.`,
+    target: {
+      display: word,
+      slots: syllables.map((part, index) => {
+        if (!part.vowel) {
+          const letterId = `${slugForWord(word)}-${index}-${slugForLetter(part.letter)}`
+          return {
+            id: letterId,
+            text: part.letter,
+            accepts: [part.letter],
+            soundId: `he_letter_${slugForLetter(part.letter)}`,
+            fixed: true,
+          }
+        }
 
-  makeLetterLevel('p', ['b']),
-  makeLetterLevel('i', ['o']),
-  makeLetterLevel('b', ['d']),
-  makeFullWordLevel('pig', ['p', 'i', 'g']),
-  makeFullWordLevel('big', ['b', 'i', 'g']),
+        const syllable = makeSyllable(part.letter, part.vowel)
+        return {
+          id: `${slugForWord(word)}-${index}-${syllable.id}`,
+          text: syllable.text,
+          accepts: [syllable.id],
+          soundId: syllable.soundId,
+        }
+      }),
+    },
+    choices,
+    completionAudioId: `he_word_${slugForWord(word)}`,
+  }
+}
 
-  makeLetterLevel('h', ['n']),
-  makeLetterLevel('e', ['i']),
-  makeLetterLevel('r', ['l']),
-  makeFullWordLevel('hen', ['h', 'e', 'n']),
-  makeFullWordLevel('bed', ['b', 'e', 'd']),
-  makeFullWordLevel('red', ['r', 'e', 'd']),
+const levelDrafts: LevelDraft[] = [
+  makeLetterLevel('א', ['ב']),
+  makeLetterLevel('ב', ['מ']),
+  makeLetterLevel('י', ['ו']),
+  makeLetterLevel('ת', ['ד']),
+  makeMissingWordLevel('בית', 1, ['א', 'מ']),
+  makeFullWordLevel('בית', ['ב', 'י', 'ת']),
+  makeLetterLevel('ד', ['ר']),
+  makeLetterLevel('ג', ['ז']),
+  makeFullWordLevel('דג', ['ד', 'ג']),
+  makeLetterLevel('מ', ['נ']),
+  makeFullWordLevel('ים', ['י', 'ם']),
+  makeLetterLevel('ח', ['כ']),
+  makeLetterLevel('ל', ['י']),
+  makeFullWordLevel('חלב', ['ח', 'ל', 'ב']),
+  makeSightWordLevel('בית', 'דג'),
+  makeSightWordLevel('דג', 'ים'),
 
-  makeLetterLevel('f', ['s']),
-  makeLetterLevel('x', ['k']),
-  makeFullWordLevel('fox', ['f', 'o', 'x']),
+  makeSyllableLevel('ב', 'patah', [['מ', 'patah'], ['ב', 'qamats']]),
+  makeSyllableLevel('מ', 'patah', [['ב', 'patah'], ['מ', 'qamats']]),
+  makeSyllableLevel('ח', 'qamats', [['ל', 'qamats'], ['ח', 'patah']]),
+  makeSyllableLevel('ל', 'qamats', [['ח', 'qamats'], ['ל', 'patah']]),
+  makeSyllableLevel('ד', 'patah', [['ג', 'patah'], ['ד', 'qamats']]),
+  makeSyllableLevel('י', 'qamats', [['ד', 'patah'], ['י', 'patah']]),
 
-  makeLetterLevel('l', ['r']),
-  makeLetterLevel('k', ['c']),
-  makeFullWordLevel('kid', ['k', 'i', 'd']),
-  makeFullWordLevel('leg', ['l', 'e', 'g']),
-
-  makeLetterLevel('w', ['v']),
-  makeLetterLevel('y', ['j']),
-  makeFullWordLevel('web', ['w', 'e', 'b']),
-  makeFullWordLevel('yes', ['y', 'e', 's']),
-
-  makeLetterLevel('j', ['g']),
-  makeLetterLevel('z', ['s']),
-  makeFullWordLevel('jam', ['j', 'a', 'm']),
-  makeFullWordLevel('zip', ['z', 'i', 'p']),
-
-  makeLetterLevel('v', ['w']),
-  makeLetterLevel('q', ['k']),
-  makeFullWordLevel('van', ['v', 'a', 'n']),
-  makeFullWordLevel('vet', ['v', 'e', 't']),
-
-  makeSightWordLevel('one', 'two'),
-  makeSightWordLevel('two', 'one'),
-  makeSightWordLevel('see', 'yes'),
-  makeSightWordLevel('go', 'up'),
-  makeSightWordLevel('up', 'go'),
-  makeSightWordLevel('are', 'see'),
+  makeNikkudWordLevel('חָלָב', [
+    { letter: 'ח', vowel: 'qamats' },
+    { letter: 'ל', vowel: 'qamats' },
+    { letter: 'ב' },
+  ], [{ letter: 'מ', vowel: 'patah' }]),
+  makeNikkudWordLevel('דַג', [
+    { letter: 'ד', vowel: 'patah' },
+    { letter: 'ג' },
+  ], [{ letter: 'ב', vowel: 'patah' }]),
+  makeNikkudWordLevel('גַן', [
+    { letter: 'ג', vowel: 'patah' },
+    { letter: 'ן' },
+  ], [{ letter: 'ד', vowel: 'patah' }]),
+  makeNikkudWordLevel('יָד', [
+    { letter: 'י', vowel: 'qamats' },
+    { letter: 'ד' },
+  ], [{ letter: 'ל', vowel: 'qamats' }]),
 ]
+
+export const LEVELS: Level[] = levelDrafts.map((draft, index) => ({
+  ...withCategory(draft),
+  order: index + 1,
+}))
 
 export function levelById(id: string) {
   return LEVELS.find((level) => level.id === id)
 }
 
+export function categoryLevels(categoryId: string) {
+  return LEVELS.filter((level) => level.categoryId === categoryId)
+}
+
+export function getCategoryById(categoryId: string) {
+  return CATEGORIES.find((category) => category.id === categoryId)
+}
+
+export function getNextLevelId(levelId: string): string | null {
+  const index = LEVELS.findIndex((level) => level.id === levelId)
+  return LEVELS[index + 1]?.id ?? null
+}
+
+export function getNextRecommendedLevelId(completedLevelIds: string[]) {
+  const completed = new Set(completedLevelIds)
+  return LEVELS.find((level) => !completed.has(level.id))?.id ?? LEVELS[0].id
+}
+
+export function isLastLevelInCategory(levelId: string) {
+  const level = levelById(levelId)
+  if (!level) return false
+  const levels = categoryLevels(level.categoryId)
+  return levels.at(-1)?.id === level.id
+}
+
+export function getNextCategoryTitle(levelId: string) {
+  const level = levelById(levelId)
+  if (!level) return null
+  const category = getCategoryById(level.categoryId)
+  const nextCategory = CATEGORIES.find((candidate) => candidate.order === (category?.order ?? 0) + 1)
+  return nextCategory?.title ?? null
+}
+
 export function getChoicePlacementSoundId(choice: Choice) {
-  return choice.text.length === 1 ? `letter_${choice.text}` : choice.soundId
+  return choice.soundId
 }
 
 export const AUDIO_ASSETS: Record<string, string[]> = {
-  ...Object.fromEntries(
-    Object.keys(phonemeText).map((letter) => [
-      `phoneme_${letter}`,
-      [1, 2, 3].map((take) => `/audio/letters/${letter}/hold-${take}.mp3`),
-    ]),
-  ),
-  ...Object.fromEntries(
-    Object.keys(letterNameText).map((letter) => [
-      `letter_${letter}`,
-      [`/audio/letters/${letter}/name.mp3`],
-    ]),
-  ),
-  ...Object.fromEntries(
-    Object.keys(wordText).map((word) => [`word_${word}`, [`/audio/words/${word}.mp3`]]),
-  ),
-  fx_pop: ['/audio/fx/pop.mp3'],
-  fx_retry: ['/audio/fx/retry.mp3'],
-  fx_word_complete: ['/audio/fx/word-complete.mp3'],
-}
-
-export const SOUND_TEXT: Record<string, string | string[]> = {
-  ...Object.fromEntries(
-    Object.entries(phonemeText).map(([letter, text]) => [`phoneme_${letter}`, text]),
-  ),
-  ...Object.fromEntries(
-    Object.keys(phonemeText).map((letter) => [
-      `letter_${letter}`,
-      letterNameText[letter],
-    ]),
-  ),
-  ...Object.fromEntries(
-    Object.entries(wordText).map(([word, text]) => [`word_${word}`, text]),
-  ),
-  fx_retry: ['try again', 'oops, try again', 'almost'],
+  he_letter_bet: [],
+  he_syllable_bet_patah: [],
+  he_syllable_bet_qamats: [],
+  he_word_halav: [],
 }

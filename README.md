@@ -1,8 +1,8 @@
-# Tiny Phonics
+# עברית קטנה
 
-A tablet-first toddler letter sound matching game built with Vite, React, and TypeScript.
+משחק התאמת אותיות ומילים ראשונות בעברית, מותאם קודם כול לטאבלט.
 
-## Commands
+## פקודות
 
 ```bash
 npm install
@@ -10,13 +10,15 @@ npm run dev
 npm test
 npm run lint
 npm run build
+npm run test:e2e
 npm run generate:audio
 ```
 
-## Notes
+## הערות
 
-- The game uses custom Pointer Events for press, hold, drag, and snap.
-- The audio layer plays generated MP3 clips by `soundId` and falls back to playful browser speech only if an asset is missing.
-- Audio clips live under `public/audio`; rerun `npm run generate:audio` to regenerate the first-pass fast voice pack.
-- Settings and progress are stored locally and fail gracefully if storage is blocked.
-- The app registers a service worker and caches the loaded app shell/assets for offline replay after the first online load.
+- המשחק משתמש ב-Pointer Events ללחיצה, החזקה, גרירה והצמדה.
+- כל התוכן הגלוי באפליקציה עבר לעברית ולכיוון RTL.
+- שכבת האודיו מוכנה ל-`soundId`, אבל כרגע לא מנגנת דיבור סינתטי או קבצים חסרים.
+- כאשר יתווספו הקלטות, אפשר למפות אותן דרך `AUDIO_ASSETS`.
+- ההגדרות וההתקדמות נשמרות מקומית וממשיכות לעבוד גם אם האחסון חסום.
+- האפליקציה רושמת service worker ושומרת את מעטפת האפליקציה לשימוש חוזר אחרי טעינה ראשונה.

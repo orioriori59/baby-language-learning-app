@@ -1,4 +1,28 @@
-export type Difficulty = 'letters' | 'missing-letter' | 'cvc-word' | 'sight-word'
+export type Difficulty =
+  | 'letters'
+  | 'missing-letter'
+  | 'cvc-word'
+  | 'sight-word'
+  | 'syllable'
+  | 'nikkud-word'
+
+export type ChoiceKind = 'letter' | 'syllable' | 'word'
+
+export type LevelKind =
+  | 'letter-match'
+  | 'missing-letter'
+  | 'word-build'
+  | 'word-match'
+  | 'syllable-match'
+  | 'nikkud-word-build'
+
+export type Category = {
+  id: string
+  title: string
+  description: string
+  order: number
+  color: string
+}
 
 export type VoiceIntensity = 'calm' | 'jumpy' | 'extra'
 
@@ -22,11 +46,16 @@ export type Choice = {
   text: string
   soundId: string
   color: string
+  kind: ChoiceKind
 }
 
 export type Level = {
   id: string
   title: string
+  categoryId: string
+  categoryTitle: string
+  levelKind: LevelKind
+  order: number
   difficulty: Difficulty
   promptText: string
   target: {

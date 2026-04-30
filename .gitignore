@@ -18,6 +18,8 @@ dist-ssr
 .idea
 .DS_Store
 .playwright-cli/
+test-results/
+playwright-report/
 .audio-tmp/
 *.suo
 *.ntvs*
