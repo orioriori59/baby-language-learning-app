@@ -2,6 +2,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -794,6 +795,10 @@ function StagePath({
   const completed = new Set(completedLevelIds)
   const completedCount = LEVELS.filter((level) => completed.has(level.id)).length
   const recommendedLevel = levelById(recommendedLevelId) ?? LEVELS[0]
+  const recommendedIndex = Math.max(
+    0,
+    LEVELS.findIndex((candidate) => candidate.id === recommendedLevel.id),
+  )
   const activeCategory =
     CATEGORIES.find((category) => category.id === recommendedLevel.categoryId) ?? CATEGORIES[0]
   const levelGap = 78
@@ -812,10 +817,11 @@ function StagePath({
     return `${path} C ${previous.x} ${controlY}, ${point.x} ${controlY}, ${point.x} ${point.y}`
   }, '')
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     recommendedNodeRef.current?.scrollIntoView({
       block: 'center',
       inline: 'nearest',
+      behavior: 'instant',
     })
   }, [recommendedLevelId])
 
@@ -836,12 +842,6 @@ function StagePath({
       </header>
 
       <div className="path-phone" style={{ '--trail-height': `${trailHeight}px` } as React.CSSProperties}>
-        <div className="phone-hud">
-          <button className="mini-icon" type="button" aria-label="הגדרות">
-            <Settings aria-hidden="true" />
-          </button>
-        </div>
-
         <div className="phone-title">
           <h2>
             <span>עברית</span> קטנה
@@ -899,6 +899,7 @@ function StagePath({
               const isNext = level.id === recommendedLevel.id
               const isUnlocked = isCompleted || isNext
               const point = trailPoints[index]
+              const revealIndex = Math.min(Math.abs(index - recommendedIndex), 8)
 
               return (
                 <button
@@ -929,6 +930,7 @@ function StagePath({
                   style={
                     {
                       '--node-index': index,
+                      '--node-reveal-index': revealIndex,
                       '--category-color': category.color,
                       '--map-x': `${point.x}px`,
                       '--map-y': `${point.y}px`,
