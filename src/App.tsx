@@ -41,7 +41,7 @@ import {
   gameReducer,
   isLevelComplete,
 } from './game/gameReducer'
-import type { Choice, GameSettings, Slot, SuccessFanfare } from './game/types'
+import type { Choice, GameSettings, GameState, Level, Slot, SuccessFanfare } from './game/types'
 import { SoundController } from './game/SoundController'
 import { findBestSlot } from './game/matching'
 
@@ -164,6 +164,14 @@ function createChoiceOrder(levelId: string, previousOrder: string[] = []) {
     ? 2
     : 1
   return [...baseOrder.slice(offset), ...baseOrder.slice(0, offset)]
+}
+
+function completesLevelAfterPlacement(level: Level, state: GameState, slotId: string) {
+  if (!level.completionAudioId.startsWith('he_word_')) return false
+
+  return level.target.slots
+    .filter((slot) => !slot.fixed)
+    .every((slot) => slot.id === slotId || Boolean(state.slots[slot.id]))
 }
 
 function tileClass(choice: Choice, isActive: boolean, dragStatus?: DragState['status']) {
@@ -534,11 +542,14 @@ function App() {
 
       if (nearest) {
         successOriginRef.current = { x: dropX, y: dropY }
-        const placementSoundId = getChoicePlacementSoundId(choice)
-        if (!hasRecordedAudio(placementSoundId)) {
-          sound.current?.play('fx_success')
+        const shouldReserveWordAudio = completesLevelAfterPlacement(level, gameState, nearest.id)
+        if (!shouldReserveWordAudio) {
+          const placementSoundId = getChoicePlacementSoundId(choice)
+          if (!hasRecordedAudio(placementSoundId)) {
+            sound.current?.play('fx_success')
+          }
+          sound.current?.play(placementSoundId, { placement: true })
         }
-        sound.current?.play(placementSoundId, { placement: true })
         dispatch((current) =>
           gameReducer(current, {
             type: 'PLACE_CHOICE',
@@ -627,10 +638,13 @@ function App() {
       successOriginRef.current = completionPoint()
     }
     const placementSoundId = getChoicePlacementSoundId(choice)
-    if (!hasRecordedAudio(placementSoundId)) {
-      sound.current?.play('fx_success')
+    const shouldReserveWordAudio = completesLevelAfterPlacement(level, gameState, openSlot.id)
+    if (!shouldReserveWordAudio) {
+      if (!hasRecordedAudio(placementSoundId)) {
+        sound.current?.play('fx_success')
+      }
+      sound.current?.play(placementSoundId, { placement: true })
     }
-    sound.current?.play(placementSoundId, { placement: true })
     dispatch((current) =>
       gameReducer(current, {
         type: 'PLACE_CHOICE',
@@ -649,11 +663,15 @@ function App() {
     )
     levelStartedAtRef.current = null
 
+    const isWordCompletion = level.completionAudioId.startsWith('he_word_')
     const burstTimer = window.setTimeout(showSuccessBurst, 0)
-    sound.current?.play('fx_level_success')
-    let wordTimer: number | null = null
-    if (level.completionAudioId.startsWith('he_word_')) {
-      wordTimer = window.setTimeout(() => sound.current?.play(level.completionAudioId), 1700)
+    let fanfareTimer: number | null = null
+    const completeDelay = isWordCompletion ? 1500 : 980
+    if (isWordCompletion) {
+      sound.current?.play(level.completionAudioId)
+      fanfareTimer = window.setTimeout(() => sound.current?.play('fx_level_success'), 1250)
+    } else {
+      sound.current?.play('fx_level_success')
     }
 
     const timer = window.setTimeout(() => {
@@ -664,12 +682,12 @@ function App() {
           new Set([...current.completedLevelIds, level.id]),
         ),
       }))
-    }, 980)
+    }, completeDelay)
 
     return () => {
       window.clearTimeout(burstTimer)
       window.clearTimeout(timer)
-      if (wordTimer) window.clearTimeout(wordTimer)
+      if (fanfareTimer) window.clearTimeout(fanfareTimer)
     }
   }, [gameState, level, showSuccessBurst])
 

@@ -1098,7 +1098,7 @@ export function getChoiceHoldSoundId(choice: Choice) {
 }
 
 export const RECORDED_AUDIO_ASSETS: Record<string, string[]> = Object.fromEntries(
-  AUDIO_SAMPLE_CLIPS.map((clip) => [clip.soundId, [clip.src]]),
+  AUDIO_SAMPLE_CLIPS.filter((clip) => clip.ready !== false).map((clip) => [clip.soundId, [clip.src]]),
 )
 
 function soundIdsForLevel(level: Level) {

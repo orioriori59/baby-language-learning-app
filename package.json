@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "audio:samples": "node scripts/generate-audio-samples.mjs",
+    "audio:first-half": "node scripts/generate-audio-samples.mjs --pack first-half --write-manifest",
     "generate:audio": "node scripts/generate-audio-pack.mjs"
   },
   "dependencies": {
