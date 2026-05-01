@@ -90,7 +90,8 @@
 
 .primary-start,
 .restart-button,
-.pack-complete button {
+.pack-complete button,
+.redo-button {
   min-height: 74px;
   border: 0;
   border-radius: 999px;
@@ -118,6 +119,7 @@
 
 .primary-start:hover,
 .restart-button:hover,
+.redo-button:hover,
 .pack-complete button:hover,
 .icon-button:hover,
 .level-dot:hover:not(:disabled) {
@@ -127,6 +129,7 @@
 
 .primary-start:active,
 .restart-button:active,
+.redo-button:active,
 .pack-complete button:active,
 .icon-button:active,
 .level-dot:active:not(:disabled),
@@ -137,6 +140,7 @@
 
 .primary-start svg,
 .restart-button svg,
+.redo-button svg,
 .pack-complete button svg {
   width: 32px;
   height: 32px;
@@ -555,7 +559,7 @@
 
 .game-header {
   display: grid;
-  grid-template-columns: 88px 88px minmax(0, 1fr) 88px;
+  grid-template-columns: 88px minmax(0, 1fr) 88px 88px;
   align-items: center;
   gap: 12px;
 }
@@ -584,11 +588,13 @@
 }
 
 .parent-gate {
-  justify-self: end;
+  justify-self: center;
   position: relative;
 }
 
 .level-progress {
+  --level-progress-color: #5dc62b;
+  --level-progress-fill: 0%;
   justify-self: center;
   min-height: 64px;
   min-width: min(440px, 64vw);
@@ -2085,6 +2091,24 @@ input:focus-visible {
   height: 28px;
 }
 
+.completion-actions {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.42fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.redo-button {
+  min-height: 68px;
+  padding: 0 20px;
+  color: #3466d9;
+  background: #fff;
+  box-shadow:
+    inset 0 -6px 0 rgba(52, 102, 217, 0.12),
+    0 14px 24px rgba(52, 102, 217, 0.14);
+  font-size: 22px;
+}
+
 .complete-continue {
   width: 100%;
   background: linear-gradient(180deg, #7bdb37, #43b916);
@@ -2257,8 +2281,13 @@ input:focus-visible {
   height: 18px;
   border-radius: 999px;
   background:
-    linear-gradient(90deg, #5dc62b 0 52%, #dedbd4 52% 100%);
+    linear-gradient(
+      90deg,
+      var(--level-progress-color) 0 var(--level-progress-fill),
+      #dedbd4 var(--level-progress-fill) 100%
+    );
   box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.86);
+  transition: background 0.28s ease;
 }
 
 .level-progress span,

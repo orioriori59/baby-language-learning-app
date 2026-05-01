@@ -350,11 +350,6 @@ function App() {
     dispatch(createInitialGameState(LEVELS[0].id))
   }, [])
 
-  const replayLevelSound = useCallback(() => {
-    sound.current?.unlock()
-    sound.current?.play(level.completionAudioId)
-  }, [level.completionAudioId])
-
   useEffect(() => {
     const levelSoundIds = [
       level.completionAudioId,
@@ -724,6 +719,14 @@ function App() {
     dispatch(createInitialGameState(nextLevelId))
   }, [gameState.levelId])
 
+  const redoCurrentLevel = useCallback(() => {
+    successOriginRef.current = null
+    levelStartedAtRef.current = performance.now()
+    setCompletionTimeMs(null)
+    setChoiceOrder((current) => createChoiceOrder(level.id, current))
+    dispatch(createInitialGameState(level.id))
+  }, [level.id])
+
   const placedChoiceIds = new Set(Object.values(gameState.slots))
   const orderedChoices = useMemo(() => {
     const choicesById = new Map(level.choices.map((choice) => [choice.id, choice]))
@@ -739,7 +742,16 @@ function App() {
   )
   const activeChoice = level.choices.find((choice) => choice.id === drag?.choiceId)
   const isReducedMotion = settings.reducedMotion
-  const completeCount = progress.completedLevelIds.length
+  const category = CATEGORIES.find((candidate) => candidate.id === level.categoryId) ?? CATEGORIES[0]
+  const categoryLevelIds = LEVELS
+    .filter((candidate) => candidate.categoryId === level.categoryId)
+    .map((candidate) => candidate.id)
+  const completedInCategory = categoryLevelIds.filter((levelId) =>
+    progress.completedLevelIds.includes(levelId),
+  ).length
+  const categoryProgressPercent = categoryLevelIds.length
+    ? Math.round((completedInCategory / categoryLevelIds.length) * 100)
+    : 0
 
   return (
     <main className={`app-shell ${isReducedMotion ? 'reduced-motion' : ''}`}>
@@ -784,22 +796,7 @@ function App() {
               <ArrowLeft aria-hidden="true" />
             </button>
             <button
-              className="icon-button sound-button"
-              type="button"
-              onClick={replayLevelSound}
-              aria-label="השמיעו שוב"
-              title="השמיעו שוב"
-            >
-              <Volume2 aria-hidden="true" />
-            </button>
-            <div className="level-progress" aria-live="polite">
-              <span>{level.title}</span>
-              <strong>
-                {completeCount}/{LEVELS.length}
-              </strong>
-            </div>
-            <button
-              className="icon-button parent-gate"
+              className="icon-button parent-gate settings-slot"
               type="button"
               onClick={() => setIsSettingsOpen(true)}
               aria-label="הגדרות"
@@ -807,6 +804,21 @@ function App() {
             >
               <Settings aria-hidden="true" />
             </button>
+            <div
+              className="level-progress"
+              aria-live="polite"
+              style={
+                {
+                  '--level-progress-color': category.color,
+                  '--level-progress-fill': `${categoryProgressPercent}%`,
+                } as React.CSSProperties
+              }
+            >
+              <span>{level.title}</span>
+              <strong>
+                {completedInCategory}/{categoryLevelIds.length}
+              </strong>
+            </div>
           </header>
 
           <div className="lesson-copy" aria-live="polite">
@@ -827,6 +839,7 @@ function App() {
             <CompletionDialog
               levelId={level.id}
               completionTimeMs={completionTimeMs}
+              onRedo={redoCurrentLevel}
               onContinue={continueAfterComplete}
             />
           )}
@@ -1245,10 +1258,12 @@ function LevelEntryDialog({
 function CompletionDialog({
   levelId,
   completionTimeMs,
+  onRedo,
   onContinue,
 }: {
   levelId: string
   completionTimeMs: number | null
+  onRedo: () => void
   onContinue: () => void
 }) {
   const level = levelById(levelId) ?? LEVELS[0]
@@ -1293,9 +1308,15 @@ function CompletionDialog({
             </div>
           )}
         </div>
-        <button className="primary-start complete-continue" type="button" onClick={onContinue}>
-          המשיכו
-        </button>
+        <div className="completion-actions">
+          <button className="redo-button" type="button" onClick={onRedo}>
+            <RotateCcw aria-hidden="true" />
+            שוב
+          </button>
+          <button className="primary-start complete-continue" type="button" onClick={onContinue}>
+            המשיכו
+          </button>
+        </div>
       </section>
     </div>
   )
