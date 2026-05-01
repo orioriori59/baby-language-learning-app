@@ -58,7 +58,9 @@ export class SoundController {
     if (this.settings.muted || this.settings.volume <= 0) return
 
     this.unlock()
-    this.playAsset(soundId, options)
+    if (!this.playAsset(soundId, options)) {
+      this.playGeneratedEffect(soundId)
+    }
   }
 
   preload(soundIds: string[]) {
@@ -121,5 +123,62 @@ export class SoundController {
       ? [1.05, 1.16, 0.98, 1.22]
       : [1, 1.1, 0.96, 1.14]
     return rates[this.assetStep % rates.length]
+  }
+
+  private playGeneratedEffect(soundId: string) {
+    if (!this.audioContext || !soundId.startsWith('fx_')) return
+
+    if (soundId === 'fx_retry' || soundId === 'fx_failure') {
+      this.playToneSequence([
+        { frequency: 220, start: 0, duration: 0.11, type: 'sawtooth' },
+        { frequency: 150, start: 0.1, duration: 0.16, type: 'sawtooth' },
+      ], 0.24)
+      return
+    }
+
+    if (soundId === 'fx_word_complete' || soundId === 'fx_level_success') {
+      this.playToneSequence([
+        { frequency: 392, start: 0, duration: 0.1, type: 'sine' },
+        { frequency: 523.25, start: 0.08, duration: 0.13, type: 'sine' },
+        { frequency: 659.25, start: 0.2, duration: 0.22, type: 'triangle' },
+      ], 0.34)
+      return
+    }
+
+    if (soundId === 'fx_pop' || soundId === 'fx_success') {
+      this.playToneSequence([
+        { frequency: 523.25, start: 0, duration: 0.08, type: 'sine' },
+        { frequency: 784, start: 0.06, duration: 0.12, type: 'triangle' },
+      ], 0.22)
+    }
+  }
+
+  private playToneSequence(
+    tones: Array<{ frequency: number; start: number; duration: number; type: OscillatorType }>,
+    gainScale: number,
+  ) {
+    if (!this.audioContext) return
+
+    const now = this.audioContext.currentTime
+    const master = this.audioContext.createGain()
+    master.gain.value = this.settings.volume * gainScale
+    master.connect(this.audioContext.destination)
+
+    for (const tone of tones) {
+      const oscillator = this.audioContext.createOscillator()
+      const gain = this.audioContext.createGain()
+      const start = now + tone.start
+      const end = start + tone.duration
+
+      oscillator.type = tone.type
+      oscillator.frequency.setValueAtTime(tone.frequency, start)
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.exponentialRampToValueAtTime(1, start + 0.015)
+      gain.gain.exponentialRampToValueAtTime(0.0001, end)
+      oscillator.connect(gain)
+      gain.connect(master)
+      oscillator.start(start)
+      oscillator.stop(end + 0.02)
+    }
   }
 }

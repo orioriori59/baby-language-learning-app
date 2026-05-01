@@ -13,6 +13,15 @@ export function distanceToRectCenter(x: number, y: number, rect: SimpleRect) {
   return Math.hypot(centerX - x, centerY - y)
 }
 
+export function isPointInsideRect(x: number, y: number, rect: SimpleRect, hitSlop = 0) {
+  return (
+    x >= rect.left - hitSlop &&
+    x <= rect.left + rect.width + hitSlop &&
+    y >= rect.top - hitSlop &&
+    y <= rect.top + rect.height + hitSlop
+  )
+}
+
 export function findBestSlot({
   choice,
   level,
@@ -21,6 +30,8 @@ export function findBestSlot({
   x,
   y,
   snapRadius,
+  requireInside = false,
+  hitSlop = 0,
 }: {
   choice: Choice
   level: Level
@@ -29,10 +40,16 @@ export function findBestSlot({
   x: number
   y: number
   snapRadius: number
+  requireInside?: boolean
+  hitSlop?: number
 }): Slot | null {
   const candidates = level.target.slots
     .filter((slot) => !slot.fixed && slot.accepts.includes(choice.id))
     .filter((slot) => !state.slots[slot.id])
+    .filter((slot) => {
+      const rect = rects[slot.id]
+      return !requireInside || (rect && isPointInsideRect(x, y, rect, hitSlop))
+    })
     .map((slot) => ({
       slot,
       distance: rects[slot.id]

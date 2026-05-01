@@ -780,11 +780,52 @@
   animation: wrongWobble 0.18s ease-in-out 2;
 }
 
+.drag-ghost.is-wrong::after {
+  content: '×';
+  position: absolute;
+  inset: -18px;
+  border-radius: inherit;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(220, 35, 45, 0.88);
+  box-shadow:
+    0 0 0 6px rgba(255, 255, 255, 0.78),
+    0 20px 38px rgba(220, 35, 45, 0.26);
+  font-size: clamp(72px, 11vw, 128px);
+  line-height: 1;
+  font-weight: 950;
+  animation: failureXPop 0.38s cubic-bezier(0.22, 1.35, 0.36, 1) both;
+}
+
 .drag-ghost.is-returning {
   transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s;
   opacity: 0;
   transform: translate3d(calc(var(--origin-x) - 50%), calc(var(--origin-y) - 50%), 0)
     scale(0.86);
+}
+
+.feedback-burst {
+  position: fixed;
+  z-index: 95;
+  left: var(--feedback-x);
+  top: var(--feedback-y);
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  translate: -50% -50%;
+  pointer-events: none;
+  color: #fff;
+  background: rgba(220, 35, 45, 0.9);
+  box-shadow:
+    0 0 0 7px rgba(255, 255, 255, 0.78),
+    0 18px 34px rgba(220, 35, 45, 0.28);
+  font-size: 88px;
+  line-height: 0.78;
+  font-weight: 950;
+  animation: failureBurst 0.54s cubic-bezier(0.22, 1.35, 0.36, 1) both;
 }
 
 .celebration {
@@ -1078,16 +1119,18 @@ input:focus-visible {
 .phone-title h2 {
   margin: 0;
   color: #12336d;
-  font-size: 39px;
-  line-height: 1;
+  font-size: clamp(64px, 14vw, 86px);
+  line-height: 0.92;
   font-weight: 950;
+  text-shadow: 0 5px 0 rgba(18, 52, 108, 0.08);
 }
 
 .phone-title p {
-  margin: 6px 0 0;
+  margin: 10px 0 0;
   color: #15336b;
-  font-size: 18px;
-  font-weight: 900;
+  font-size: clamp(30px, 6vw, 40px);
+  line-height: 1;
+  font-weight: 950;
 }
 
 .trail-wrap {
@@ -2118,6 +2161,36 @@ input:focus-visible {
   50% {
     transform: translate3d(calc(var(--drag-x) - 50%), calc(var(--drag-y) - 50%), 0)
       rotate(5deg);
+  }
+}
+
+@keyframes failureXPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.58) rotate(-12deg);
+  }
+  62% {
+    opacity: 1;
+    transform: scale(1.08) rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes failureBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.44) rotate(-10deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.08) rotate(4deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.28) rotate(0);
   }
 }
 

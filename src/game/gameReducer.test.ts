@@ -272,4 +272,43 @@ describe('snap matching', () => {
       }),
     ).toBeNull()
   })
+
+  it('requires hovering over the target slot when strict inside matching is enabled', () => {
+    const level = LEVELS.find((candidate) => {
+      const firstSlot = candidate.target.slots.find((slot) => !slot.fixed)
+      return Boolean(firstSlot && candidate.choices.some((choice) => firstSlot.accepts.includes(choice.id)))
+    })!
+    const state = createInitialGameState(level.id)
+    const firstSlot = level.target.slots.find((slot) => !slot.fixed)!
+    const choice = level.choices.find((candidate) => firstSlot.accepts.includes(candidate.id))!
+    const rect = { left: 100, top: 100, width: 80, height: 80 }
+
+    expect(
+      findBestSlot({
+        choice,
+        level,
+        state,
+        snapRadius: Number.POSITIVE_INFINITY,
+        x: rect.left + rect.width + 24,
+        y: rect.top + rect.height / 2,
+        rects: { [firstSlot.id]: rect },
+        requireInside: true,
+        hitSlop: 8,
+      }),
+    ).toBeNull()
+
+    expect(
+      findBestSlot({
+        choice,
+        level,
+        state,
+        snapRadius: Number.POSITIVE_INFINITY,
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+        rects: { [firstSlot.id]: rect },
+        requireInside: true,
+        hitSlop: 8,
+      })?.id,
+    ).toBe(firstSlot.id)
+  })
 })

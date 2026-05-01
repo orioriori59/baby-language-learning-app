@@ -55,6 +55,13 @@ type DragState = {
   status: 'dragging' | 'returning' | 'wrong'
 }
 
+type FeedbackBurst = {
+  id: number
+  kind: 'failure'
+  x: number
+  y: number
+}
+
 const SETTINGS_KEY = 'tiny-phonics-settings'
 const PROGRESS_KEY = 'tiny-phonics-progress'
 
@@ -179,6 +186,7 @@ function App() {
     createHomeGameState(progress.lastLevelId),
   )
   const [drag, setDrag] = useState<DragState | null>(null)
+  const [feedbackBurst, setFeedbackBurst] = useState<FeedbackBurst | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [parentGateStarted, setParentGateStarted] = useState(false)
   const [entryLevelId, setEntryLevelId] = useState<string | null>(null)
@@ -193,6 +201,7 @@ function App() {
   const gateRect = useRef<DOMRect | null>(null)
   const dragTimer = useRef<number | null>(null)
   const dragReturnTimer = useRef<number | null>(null)
+  const feedbackTimer = useRef<number | null>(null)
   const dragId = useRef(0)
   const closeSettingsRef = useRef<HTMLButtonElement | null>(null)
   const sound = useRef<SoundController | null>(null)
@@ -228,6 +237,7 @@ function App() {
       sound.current?.stopHold()
       if (dragTimer.current) window.clearTimeout(dragTimer.current)
       if (dragReturnTimer.current) window.clearTimeout(dragReturnTimer.current)
+      if (feedbackTimer.current) window.clearTimeout(feedbackTimer.current)
     },
     [],
   )
@@ -303,9 +313,9 @@ function App() {
   useEffect(() => {
     const levelSoundIds = [
       level.completionAudioId,
-      'fx_pop',
-      'fx_retry',
-      'fx_word_complete',
+      'fx_success',
+      'fx_failure',
+      'fx_level_success',
       ...level.choices.flatMap((choice) => [
         choice.soundId,
         getChoicePlacementSoundId(choice),
@@ -316,6 +326,22 @@ function App() {
 
   const updateSettings = useCallback((patch: Partial<GameSettings>) => {
     setSettings((current) => ({ ...current, ...patch }))
+  }, [])
+
+  const showFailureFeedback = useCallback((x: number, y: number) => {
+    if (feedbackTimer.current) {
+      window.clearTimeout(feedbackTimer.current)
+    }
+
+    setFeedbackBurst({
+      id: Date.now(),
+      kind: 'failure',
+      x,
+      y,
+    })
+    feedbackTimer.current = window.setTimeout(() => {
+      setFeedbackBurst(null)
+    }, 560)
   }, [])
 
   const cancelParentGate = () => {
@@ -442,10 +468,6 @@ function App() {
       }
 
       const rects = slotRects()
-      const snapRadius = Math.max(
-        44,
-        Math.min(66, Math.min(window.innerWidth, window.innerHeight) * 0.08),
-      )
       const nearest = findBestSlot({
         choice,
         level,
@@ -453,21 +475,15 @@ function App() {
         rects,
         x: dropX,
         y: dropY,
-        snapRadius,
-      }) ?? findBestSlot({
-        choice,
-        level,
-        state: gameState,
-        rects,
-        x,
-        y,
-        snapRadius: Math.max(snapRadius, 260),
+        snapRadius: Number.POSITIVE_INFINITY,
+        requireInside: true,
+        hitSlop: 8,
       })
 
       sound.current?.stopHold()
 
       if (nearest) {
-        sound.current?.play('fx_pop')
+        sound.current?.play('fx_success')
         sound.current?.play(getChoicePlacementSoundId(choice), { placement: true })
         dispatch((current) =>
           gameReducer(current, {
@@ -480,7 +496,8 @@ function App() {
         return
       }
 
-      sound.current?.play('fx_retry')
+      sound.current?.play('fx_failure')
+      showFailureFeedback(dropX, dropY)
       const currentDragId = currentDrag.id
       updateCurrentDrag((current) =>
         current?.id === currentDragId ? { ...current, status: 'wrong' } : current,
@@ -489,7 +506,7 @@ function App() {
         returnDrag(currentDragId)
       }, 180)
     },
-    [cancelDrag, gameState, level, returnDrag, setCurrentDrag, slotRects, updateCurrentDrag],
+    [cancelDrag, gameState, level, returnDrag, setCurrentDrag, showFailureFeedback, slotRects, updateCurrentDrag],
   )
 
   const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -538,12 +555,14 @@ function App() {
         !slot.fixed && !gameState.slots[slot.id] && slot.accepts.includes(choice.id),
     )
     if (!openSlot) {
-      sound.current?.play('fx_retry')
+      sound.current?.unlock()
+      sound.current?.play('fx_failure')
+      showFailureFeedback(window.innerWidth / 2, window.innerHeight * 0.66)
       return
     }
 
     sound.current?.unlock()
-    sound.current?.play('fx_pop')
+    sound.current?.play('fx_success')
     sound.current?.play(getChoicePlacementSoundId(choice), { placement: true })
     dispatch((current) =>
       gameReducer(current, {
@@ -558,7 +577,7 @@ function App() {
     if (!isLevelComplete(gameState, level)) return
 
     const timer = window.setTimeout(() => {
-      sound.current?.play('fx_word_complete')
+      sound.current?.play('fx_level_success')
       if (level.completionAudioId.startsWith('he_word_')) {
         window.setTimeout(() => sound.current?.play(level.completionAudioId), 520)
       }
@@ -737,6 +756,22 @@ function App() {
             <i />
             <b />
           </div>
+
+          {feedbackBurst && (
+            <div
+              key={feedbackBurst.id}
+              className={`feedback-burst ${feedbackBurst.kind}`}
+              style={
+                {
+                  '--feedback-x': `${feedbackBurst.x}px`,
+                  '--feedback-y': `${feedbackBurst.y}px`,
+                } as React.CSSProperties
+              }
+              aria-hidden="true"
+            >
+              ×
+            </div>
+          )}
 
           {drag && activeChoice && (
             <div
