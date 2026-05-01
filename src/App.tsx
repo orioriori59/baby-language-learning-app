@@ -62,6 +62,12 @@ type FeedbackBurst = {
   y: number
 }
 
+type SuccessBurst = {
+  id: number
+  x: number
+  y: number
+}
+
 const SETTINGS_KEY = 'tiny-phonics-settings'
 const PROGRESS_KEY = 'tiny-phonics-progress'
 
@@ -187,6 +193,7 @@ function App() {
   )
   const [drag, setDrag] = useState<DragState | null>(null)
   const [feedbackBurst, setFeedbackBurst] = useState<FeedbackBurst | null>(null)
+  const [successBurst, setSuccessBurst] = useState<SuccessBurst | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [parentGateStarted, setParentGateStarted] = useState(false)
   const [entryLevelId, setEntryLevelId] = useState<string | null>(null)
@@ -202,6 +209,7 @@ function App() {
   const dragTimer = useRef<number | null>(null)
   const dragReturnTimer = useRef<number | null>(null)
   const feedbackTimer = useRef<number | null>(null)
+  const successBurstTimer = useRef<number | null>(null)
   const dragId = useRef(0)
   const closeSettingsRef = useRef<HTMLButtonElement | null>(null)
   const sound = useRef<SoundController | null>(null)
@@ -238,6 +246,7 @@ function App() {
       if (dragTimer.current) window.clearTimeout(dragTimer.current)
       if (dragReturnTimer.current) window.clearTimeout(dragReturnTimer.current)
       if (feedbackTimer.current) window.clearTimeout(feedbackTimer.current)
+      if (successBurstTimer.current) window.clearTimeout(successBurstTimer.current)
     },
     [],
   )
@@ -343,6 +352,39 @@ function App() {
       setFeedbackBurst(null)
     }, 560)
   }, [])
+
+  const completionPoint = useCallback(() => {
+    const rects = Object.values(slotRefs.current)
+      .filter((element): element is HTMLSpanElement => Boolean(element))
+      .map((element) => element.getBoundingClientRect())
+
+    if (!rects.length) {
+      return { x: window.innerWidth / 2, y: window.innerHeight * 0.42 }
+    }
+
+    const left = Math.min(...rects.map((rect) => rect.left))
+    const right = Math.max(...rects.map((rect) => rect.right))
+    const top = Math.min(...rects.map((rect) => rect.top))
+    const bottom = Math.max(...rects.map((rect) => rect.bottom))
+    return {
+      x: left + (right - left) / 2,
+      y: top + (bottom - top) / 2,
+    }
+  }, [])
+
+  const showSuccessBurst = useCallback(() => {
+    if (successBurstTimer.current) {
+      window.clearTimeout(successBurstTimer.current)
+    }
+
+    setSuccessBurst({
+      id: Date.now(),
+      ...completionPoint(),
+    })
+    successBurstTimer.current = window.setTimeout(() => {
+      setSuccessBurst(null)
+    }, 1250)
+  }, [completionPoint])
 
   const cancelParentGate = () => {
     setParentGateStarted(false)
@@ -576,11 +618,14 @@ function App() {
   useEffect(() => {
     if (!isLevelComplete(gameState, level)) return
 
+    const burstTimer = window.setTimeout(showSuccessBurst, 0)
+    sound.current?.play('fx_level_success')
+    let wordTimer: number | null = null
+    if (level.completionAudioId.startsWith('he_word_')) {
+      wordTimer = window.setTimeout(() => sound.current?.play(level.completionAudioId), 820)
+    }
+
     const timer = window.setTimeout(() => {
-      sound.current?.play('fx_level_success')
-      if (level.completionAudioId.startsWith('he_word_')) {
-        window.setTimeout(() => sound.current?.play(level.completionAudioId), 520)
-      }
       dispatch((current) => gameReducer(current, { type: 'COMPLETE_LEVEL' }))
       setProgress((current) => ({
         lastLevelId: level.id,
@@ -588,10 +633,14 @@ function App() {
           new Set([...current.completedLevelIds, level.id]),
         ),
       }))
-    }, 450)
+    }, 980)
 
-    return () => window.clearTimeout(timer)
-  }, [gameState, level])
+    return () => {
+      window.clearTimeout(burstTimer)
+      window.clearTimeout(timer)
+      if (wordTimer) window.clearTimeout(wordTimer)
+    }
+  }, [gameState, level, showSuccessBurst])
 
   const continueAfterComplete = useCallback(() => {
     const nextLevelId = getNextLevelId(gameState.levelId)
@@ -701,6 +750,8 @@ function App() {
             choices={level.choices}
             slotRefs={slotRefs}
           />
+
+          {successBurst && <CompletionBurst burst={successBurst} />}
 
           {gameState.status === 'levelComplete' && (
             <CompletionDialog levelId={level.id} onContinue={continueAfterComplete} />
@@ -1112,6 +1163,26 @@ function CompletionDialog({ levelId, onContinue }: { levelId: string; onContinue
           המשיכו
         </button>
       </section>
+    </div>
+  )
+}
+
+function CompletionBurst({ burst }: { burst: SuccessBurst }) {
+  return (
+    <div
+      key={burst.id}
+      className="completion-burst"
+      style={
+        {
+          '--burst-x': `${burst.x}px`,
+          '--burst-y': `${burst.y}px`,
+        } as React.CSSProperties
+      }
+      aria-hidden="true"
+    >
+      {Array.from({ length: 18 }, (_, index) => (
+        <i key={index} />
+      ))}
     </div>
   )
 }

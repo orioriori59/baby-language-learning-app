@@ -134,11 +134,7 @@ export class SoundController {
     }
 
     if (soundId === 'fx_word_complete' || soundId === 'fx_level_success') {
-      this.playToneSequence([
-        { frequency: 392, start: 0, duration: 0.1, type: 'sine' },
-        { frequency: 523.25, start: 0.08, duration: 0.13, type: 'sine' },
-        { frequency: 659.25, start: 0.2, duration: 0.22, type: 'triangle' },
-      ], 0.34)
+      this.playFanfareEffect()
       return
     }
 
@@ -148,6 +144,33 @@ export class SoundController {
         { frequency: 784, start: 0.06, duration: 0.12, type: 'triangle' },
       ], 0.22)
     }
+  }
+
+  private playFanfareEffect() {
+    this.playToneSequence([
+      { frequency: 523.25, start: 0, duration: 0.1, type: 'triangle' },
+      { frequency: 659.25, start: 0.09, duration: 0.1, type: 'triangle' },
+      { frequency: 783.99, start: 0.18, duration: 0.12, type: 'triangle' },
+      { frequency: 1046.5, start: 0.3, duration: 0.15, type: 'sine' },
+      { frequency: 880, start: 0.46, duration: 0.1, type: 'triangle' },
+      { frequency: 783.99, start: 0.55, duration: 0.1, type: 'triangle' },
+      { frequency: 1046.5, start: 0.64, duration: 0.26, type: 'sine' },
+      { frequency: 1318.51, start: 0.68, duration: 0.22, type: 'sine' },
+    ], 0.3)
+
+    this.playToneSequence([
+      { frequency: 261.63, start: 0, duration: 0.26, type: 'sine' },
+      { frequency: 329.63, start: 0.3, duration: 0.28, type: 'sine' },
+      { frequency: 392, start: 0.62, duration: 0.34, type: 'sine' },
+    ], 0.12)
+
+    window.setTimeout(() => {
+      this.playToneSequence([
+        { frequency: 1567.98, start: 0, duration: 0.045, type: 'sine' },
+        { frequency: 2093, start: 0.08, duration: 0.055, type: 'sine' },
+        { frequency: 2637.02, start: 0.18, duration: 0.075, type: 'triangle' },
+      ], 0.14)
+    }, 360)
   }
 
   private playFailureEffect() {

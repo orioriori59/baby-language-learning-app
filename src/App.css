@@ -828,6 +828,77 @@
   animation: failureBurst 0.54s cubic-bezier(0.22, 1.35, 0.36, 1) both;
 }
 
+.completion-burst {
+  position: fixed;
+  z-index: 58;
+  left: var(--burst-x);
+  top: var(--burst-y);
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.completion-burst::before,
+.completion-burst::after {
+  content: '';
+  position: absolute;
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  border: 14px solid rgba(255, 210, 63, 0.38);
+  translate: -50% -50%;
+  animation: localSuccessRing 0.92s cubic-bezier(0.18, 0.88, 0.24, 1) both;
+}
+
+.completion-burst::after {
+  width: 226px;
+  height: 226px;
+  border-color: rgba(83, 196, 41, 0.26);
+  animation-delay: 0.12s;
+}
+
+.completion-burst i {
+  --spark-x: 0px;
+  --spark-y: 0px;
+  --spark-rotate: 180deg;
+  --spark-color: #ff9f1c;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 12px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--spark-color);
+  box-shadow: 0 5px 14px rgba(31, 46, 79, 0.12);
+  animation: localConfettiBurst 1.08s cubic-bezier(0.16, 0.88, 0.28, 1) both;
+}
+
+.completion-burst i:nth-child(3n) {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+}
+
+.completion-burst i:nth-child(1) { --spark-x: -128px; --spark-y: -96px; --spark-rotate: -380deg; --spark-color: #ffd23f; }
+.completion-burst i:nth-child(2) { --spark-x: -74px; --spark-y: -132px; --spark-rotate: 330deg; --spark-color: #37c871; }
+.completion-burst i:nth-child(3) { --spark-x: 12px; --spark-y: -148px; --spark-rotate: -290deg; --spark-color: #2f83f4; }
+.completion-burst i:nth-child(4) { --spark-x: 90px; --spark-y: -116px; --spark-rotate: 440deg; --spark-color: #ff6b8a; }
+.completion-burst i:nth-child(5) { --spark-x: 138px; --spark-y: -52px; --spark-rotate: -340deg; --spark-color: #ff9f1c; }
+.completion-burst i:nth-child(6) { --spark-x: 148px; --spark-y: 24px; --spark-rotate: 300deg; --spark-color: #31b8d0; }
+.completion-burst i:nth-child(7) { --spark-x: 106px; --spark-y: 88px; --spark-rotate: -420deg; --spark-color: #7b61ff; }
+.completion-burst i:nth-child(8) { --spark-x: 42px; --spark-y: 128px; --spark-rotate: 360deg; --spark-color: #7bdc37; }
+.completion-burst i:nth-child(9) { --spark-x: -30px; --spark-y: 138px; --spark-rotate: -320deg; --spark-color: #ffcf38; }
+.completion-burst i:nth-child(10) { --spark-x: -104px; --spark-y: 94px; --spark-rotate: 390deg; --spark-color: #42b815; }
+.completion-burst i:nth-child(11) { --spark-x: -148px; --spark-y: 28px; --spark-rotate: -460deg; --spark-color: #1f8fff; }
+.completion-burst i:nth-child(12) { --spark-x: -138px; --spark-y: -38px; --spark-rotate: 340deg; --spark-color: #fb5f75; }
+.completion-burst i:nth-child(13) { --spark-x: -92px; --spark-y: -82px; --spark-rotate: -260deg; --spark-color: #ff8b1a; animation-delay: 80ms; }
+.completion-burst i:nth-child(14) { --spark-x: -22px; --spark-y: -104px; --spark-rotate: 380deg; --spark-color: #2dc8b8; animation-delay: 70ms; }
+.completion-burst i:nth-child(15) { --spark-x: 62px; --spark-y: -78px; --spark-rotate: -310deg; --spark-color: #7b61ff; animation-delay: 95ms; }
+.completion-burst i:nth-child(16) { --spark-x: 88px; --spark-y: 6px; --spark-rotate: 330deg; --spark-color: #ffd23f; animation-delay: 75ms; }
+.completion-burst i:nth-child(17) { --spark-x: 20px; --spark-y: 86px; --spark-rotate: -370deg; --spark-color: #2f83f4; animation-delay: 90ms; }
+.completion-burst i:nth-child(18) { --spark-x: -66px; --spark-y: 52px; --spark-rotate: 320deg; --spark-color: #37c871; animation-delay: 85ms; }
+
 .celebration {
   position: absolute;
   inset: 0;
@@ -1582,11 +1653,13 @@ input:focus-visible {
     radial-gradient(circle at 50% 28%, rgba(255, 231, 117, 0.42), transparent 30%),
     rgba(255, 250, 234, 0.72);
   backdrop-filter: blur(1px);
+  overflow: hidden;
 }
 
 .complete-card {
   overflow: hidden;
   padding: 84px 26px 26px;
+  z-index: 2;
 }
 
 .complete-banner {
@@ -2191,6 +2264,34 @@ input:focus-visible {
   100% {
     opacity: 0;
     transform: scale(1.28) rotate(0);
+  }
+}
+
+@keyframes localConfettiBurst {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.45) rotate(0);
+  }
+  18% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--spark-x), var(--spark-y), 0) scale(1) rotate(var(--spark-rotate));
+  }
+}
+
+@keyframes localSuccessRing {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.18);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
   }
 }
 
