@@ -132,7 +132,8 @@ const vowelMarks = {
 }
 
 function ttsTextForSyllable(letter, vowel) {
-  if (letter === 'י' && vowel === 'hiriq') return 'יִי'
+  if (letter === 'י' && vowel === 'hiriq') return 'yee'
+  if (letter === 'י' && vowel === 'segol') return 'יֶה'
   if (vowel === 'patah' || vowel === 'qamats') return `${letter}${vowelMarks.qamats}`
   if (vowel === 'hiriq') return `${letter}${vowelMarks.hiriq}י`
   if (vowel === 'qubuts' || vowel === 'shuruk') return `${letter}${vowelMarks.shuruk}`
@@ -151,6 +152,7 @@ function parseArgs(argv) {
     dryRun: false,
     forceAll: false,
     forceIds: new Set(),
+    forceMatch: null,
     limit: null,
     model: 'tts-rt-v1',
     voice: 'Nina',
@@ -174,6 +176,9 @@ function parseArgs(argv) {
       } else {
         options.forceAll = true
       }
+    } else if (arg === '--force-match') {
+      options.forceMatch = argv[index + 1] ?? options.forceMatch
+      index += 1
     } else if (arg === '--model') {
       options.model = argv[index + 1] ?? options.model
       index += 1
@@ -262,7 +267,14 @@ function syllableClip(soundId, seenText) {
     soundId,
     text,
     ttsText,
-    srcSoundId: slug === 'yod' && vowel === 'patah' ? 'he_syllable_yod_qamats' : undefined,
+    srcSoundId:
+      slug === 'yod' && vowel === 'patah'
+        ? 'he_syllable_yod_qamats'
+        : slug === 'yod' && vowel === 'tsere'
+          ? 'he_syllable_yod_segol'
+          : slug === 'gimel' && vowel === 'segol'
+            ? 'he_syllable_gimel_tsere'
+          : undefined,
     kind: 'syllable',
   }
 }
@@ -443,13 +455,18 @@ async function main() {
 
   const selectedClips = options.forceIds.size
     ? packClips.filter((clip) => options.forceIds.has(clip.soundId))
+    : options.forceMatch
+      ? packClips.filter((clip) => clip.soundId.includes(options.forceMatch))
     : packClips
 
   const rows = await Promise.all(
     selectedClips.map(async (clip) => {
       const filePath = clipPath(clip)
       const present = await exists(filePath)
-      const forced = options.forceAll || options.forceIds.has(clip.soundId)
+      const forced =
+        options.forceAll ||
+        options.forceIds.has(clip.soundId) ||
+        Boolean(options.forceMatch && clip.soundId.includes(options.forceMatch))
       return { clip, filePath, present, shouldGenerate: forced || !present }
     }),
   )

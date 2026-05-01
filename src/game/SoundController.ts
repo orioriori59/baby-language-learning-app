@@ -3,6 +3,7 @@ import type { GameSettings, SuccessFanfare } from './types'
 
 const HOLD_INTERVAL_MS = 470
 type Tone = { frequency: number; start: number; duration: number; type: OscillatorType }
+type PlaybackOptions = { held?: boolean; placement?: boolean; clipped?: boolean }
 
 export class SoundController {
   private audioContext: AudioContext | null = null
@@ -58,7 +59,7 @@ export class SoundController {
     this.stopHoldNodes()
   }
 
-  play(soundId: string, options: { held?: boolean; placement?: boolean } = {}) {
+  play(soundId: string, options: PlaybackOptions = {}) {
     if (this.settings.muted || this.settings.volume <= 0) return
 
     this.unlock()
@@ -75,7 +76,7 @@ export class SoundController {
     }
   }
 
-  private playAsset(soundId: string, options: { held?: boolean; placement?: boolean }) {
+  private playAsset(soundId: string, options: PlaybackOptions) {
     const assets = AUDIO_ASSETS[soundId]
     if (!assets?.length || !this.audioContext) return false
 
@@ -93,12 +94,23 @@ export class SoundController {
 
       const source = this.audioContext.createBufferSource()
       const gain = this.audioContext.createGain()
+      const now = this.audioContext.currentTime
       source.buffer = buffer
       source.playbackRate.value = options.held ? this.getAssetRate() : 1
-      gain.gain.value = this.settings.volume
+      if (options.clipped) {
+        gain.gain.setValueAtTime(0.0001, now)
+        gain.gain.linearRampToValueAtTime(this.settings.volume * 0.9, now + 0.018)
+        gain.gain.setValueAtTime(this.settings.volume * 0.9, now + 0.36)
+        gain.gain.linearRampToValueAtTime(0.0001, now + 0.46)
+      } else {
+        gain.gain.value = this.settings.volume
+      }
       source.connect(gain)
       gain.connect(this.audioContext.destination)
-      source.start()
+      source.start(now)
+      if (options.clipped) {
+        source.stop(now + 0.5)
+      }
     })
 
     return true

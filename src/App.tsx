@@ -166,8 +166,12 @@ function createChoiceOrder(levelId: string, previousOrder: string[] = []) {
   return [...baseOrder.slice(offset), ...baseOrder.slice(0, offset)]
 }
 
+function completionAudioOwnsSuccess(level: Level) {
+  return level.completionAudioId.startsWith('he_word_') || level.completionAudioId.startsWith('he_syllable_')
+}
+
 function completesLevelAfterPlacement(level: Level, state: GameState, slotId: string) {
-  if (!level.completionAudioId.startsWith('he_word_')) return false
+  if (!completionAudioOwnsSuccess(level)) return false
 
   return level.target.slots
     .filter((slot) => !slot.fixed)
@@ -542,8 +546,8 @@ function App() {
 
       if (nearest) {
         successOriginRef.current = { x: dropX, y: dropY }
-        const shouldReserveWordAudio = completesLevelAfterPlacement(level, gameState, nearest.id)
-        if (!shouldReserveWordAudio) {
+        const shouldReserveCompletionAudio = completesLevelAfterPlacement(level, gameState, nearest.id)
+        if (!shouldReserveCompletionAudio) {
           const placementSoundId = getChoicePlacementSoundId(choice)
           if (!hasRecordedAudio(placementSoundId)) {
             sound.current?.play('fx_success')
@@ -638,8 +642,8 @@ function App() {
       successOriginRef.current = completionPoint()
     }
     const placementSoundId = getChoicePlacementSoundId(choice)
-    const shouldReserveWordAudio = completesLevelAfterPlacement(level, gameState, openSlot.id)
-    if (!shouldReserveWordAudio) {
+    const shouldReserveCompletionAudio = completesLevelAfterPlacement(level, gameState, openSlot.id)
+    if (!shouldReserveCompletionAudio) {
       if (!hasRecordedAudio(placementSoundId)) {
         sound.current?.play('fx_success')
       }
@@ -664,12 +668,15 @@ function App() {
     levelStartedAtRef.current = null
 
     const isWordCompletion = level.completionAudioId.startsWith('he_word_')
+    const isSyllableCompletion = level.completionAudioId.startsWith('he_syllable_')
     const burstTimer = window.setTimeout(showSuccessBurst, 0)
     let fanfareTimer: number | null = null
     const completeDelay = isWordCompletion ? 1500 : 980
     if (isWordCompletion) {
       sound.current?.play(level.completionAudioId)
       fanfareTimer = window.setTimeout(() => sound.current?.play('fx_level_success'), 1250)
+    } else if (isSyllableCompletion) {
+      sound.current?.play(level.completionAudioId, { clipped: true })
     } else {
       sound.current?.play('fx_level_success')
     }
