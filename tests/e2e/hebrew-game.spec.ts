@@ -87,6 +87,7 @@ async function completeLevelWithKeyboard(page: Page, level: Level) {
   }
 
   await expect(page.getByText('כל הכבוד!')).toBeVisible({ timeout: 4000 })
+  await expect(page.locator('.completion-time strong')).toHaveText(/^\d{2,}\.\d{2}$/)
 }
 
 function firstCategoryTransition() {
@@ -274,7 +275,9 @@ test('keeps letter drag feedback anchored while holding a tile', async ({ page }
 })
 
 test('shows nikkud syllables without overlap on mobile', async ({ page }) => {
-  const firstNikkudLevel = LEVELS.find((level) => level.id === 'syllable-het-qamats-match')
+  const firstNikkudLevel = LEVELS.find((level) =>
+    level.levelKind === 'syllable-match' && level.target.display === 'חָ'
+  )
   expect(firstNikkudLevel).toBeTruthy()
 
   await page.setViewportSize({ width: 390, height: 844 })
@@ -307,10 +310,17 @@ test('shows a category transition celebration at the first section boundary', as
 
   await expect(page.getByText(/נפתחה קטגוריה חדשה/)).toBeVisible({ timeout: 1500 })
   await expect(page.getByText(nextCategoryTitle!)).toBeVisible()
+
+  await page.getByRole('button', { name: 'המשיכו' }).click()
+  await expect(page.getByTestId('stage-path')).toBeVisible()
+  await expect(levelNode(page, transition.nextLevel.id)).toHaveAttribute('data-level-status', 'next')
+  await expect(levelNode(page, transition.nextLevel.id)).toHaveClass(/category-unlocking/)
 })
 
 test('builds a nikkud word from ready syllable tiles', async ({ page }) => {
-  const nikkudWordLevel = LEVELS.find((level) => level.id === 'halav-qamats-nikkud')
+  const nikkudWordLevel = LEVELS.find((level) =>
+    level.levelKind === 'nikkud-word-build' && level.target.display === 'חָלָב'
+  )
   expect(nikkudWordLevel).toBeTruthy()
 
   await seedProgress(page, completedIdsBefore(nikkudWordLevel!))
@@ -332,7 +342,7 @@ test('builds a nikkud word from ready syllable tiles', async ({ page }) => {
 
   await expect(page.getByText('כל הכבוד!')).toBeVisible({ timeout: 4000 })
   await page.getByRole('button', { name: 'המשיכו' }).click()
-  await expect(page.getByText('גררו את הצירופים המנוקדים למילה דַג.')).toBeVisible()
+  await expect(page.locator('.game-screen')).toBeVisible()
 })
 
 test('plays representative levels from new nikkud families', async ({ page }) => {

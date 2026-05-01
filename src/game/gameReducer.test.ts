@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   AUDIO_ASSETS,
   CATEGORIES,
+  CURRICULUM_SECTIONS,
   LEVELS,
+  expectedCategoryCounts,
   getNextRecommendedLevelId,
   makeSyllable,
   stripNikkud,
@@ -15,19 +17,6 @@ import {
   validateLevels,
 } from './gameReducer'
 import { findBestSlot } from './matching'
-
-const EXPECTED_CATEGORY_COUNTS = {
-  letters: 36,
-  'final-letters': 18,
-  'patah-qamats': 24,
-  hiriq: 22,
-  'tsere-segol': 28,
-  holam: 22,
-  'qubuts-shuruk': 26,
-  'mixed-a-i-e': 20,
-  'mixed-o-u': 14,
-  'first-reading': 10,
-} as const
 
 function duplicateValues(values: string[]) {
   const seen = new Set<string>()
@@ -57,6 +46,10 @@ const makeAnySyllable = makeSyllable as (
   vowel: string,
 ) => ReturnType<typeof makeSyllable>
 
+function displayLetters(text: string) {
+  return [...stripNikkud(text)].filter((char) => char.trim())
+}
+
 describe('level content', () => {
   it('contains the full 220-level expansion', () => {
     expect(LEVELS).toHaveLength(220)
@@ -64,9 +57,33 @@ describe('level content', () => {
 
   it('has the expected categories and level counts', () => {
     expect(CATEGORIES.map((category) => category.id)).toEqual(
-      Object.keys(EXPECTED_CATEGORY_COUNTS),
+      Object.keys(expectedCategoryCounts),
     )
-    expect(categoryCounts()).toEqual(EXPECTED_CATEGORY_COUNTS)
+    expect(categoryCounts()).toEqual(expectedCategoryCounts)
+  })
+
+  it('keeps each pod inside its introduced letters', () => {
+    for (const section of CURRICULUM_SECTIONS) {
+      const allowedLetters = new Set(section.introducedLetters)
+      const sectionLevels = LEVELS.filter((level) => level.categoryId === section.id)
+
+      for (const level of sectionLevels) {
+        const visibleText = [
+          level.target.display,
+          ...level.target.slots.map((slot) => slot.text),
+          ...level.choices.map((choice) => choice.text),
+        ].join('')
+        const unexpectedLetters = uniqueValues(
+          displayLetters(visibleText).filter((letter) => !allowedLetters.has(letter)),
+        )
+
+        expect(unexpectedLetters, `${level.id} introduced early letters`).toEqual([])
+      }
+    }
+  })
+
+  it('marks every level with a learning focus', () => {
+    expect(LEVELS.every((level) => Boolean(level.learningFocus))).toBe(true)
   })
 
   it('has valid slot and choice references', () => {

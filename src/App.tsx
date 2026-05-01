@@ -24,14 +24,17 @@ import {
   CATEGORIES,
   DEFAULT_SETTINGS,
   LEVELS,
+  getChoiceHoldSoundId,
   getChoicePlacementSoundId,
   getNextCategoryTitle,
   getNextLevelId,
   getNextRecommendedLevelId,
+  hasRecordedAudio,
   isLastLevelInCategory,
   levelById,
   stripNikkud,
 } from './game/content'
+import { AUDIO_SAMPLE_CLIPS, type AudioSampleClip } from './game/audioSamples'
 import {
   createHomeGameState,
   createInitialGameState,
@@ -66,6 +69,11 @@ type SuccessBurst = {
   id: number
   x: number
   y: number
+}
+
+type TrailUnlock = {
+  id: number
+  categoryId: string
 }
 
 const SETTINGS_KEY = 'tiny-phonics-settings'
@@ -185,6 +193,14 @@ function getPoint(event: ReactPointerEvent<HTMLElement>) {
   return { x: event.clientX, y: event.clientY }
 }
 
+function formatStopwatchTime(milliseconds: number) {
+  const totalCentiseconds = Math.max(0, Math.floor(milliseconds / 10))
+  const seconds = Math.floor(totalCentiseconds / 100)
+  const centiseconds = totalCentiseconds % 100
+
+  return `${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`
+}
+
 function App() {
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings())
   const [progress, setProgress] = useState(() => loadProgress())
@@ -194,6 +210,8 @@ function App() {
   const [drag, setDrag] = useState<DragState | null>(null)
   const [feedbackBurst, setFeedbackBurst] = useState<FeedbackBurst | null>(null)
   const [successBurst, setSuccessBurst] = useState<SuccessBurst | null>(null)
+  const [trailUnlock, setTrailUnlock] = useState<TrailUnlock | null>(null)
+  const [completionTimeMs, setCompletionTimeMs] = useState<number | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [entryLevelId, setEntryLevelId] = useState<string | null>(null)
   const [choiceOrder, setChoiceOrder] = useState<string[]>(() =>
@@ -207,6 +225,7 @@ function App() {
   const feedbackTimer = useRef<number | null>(null)
   const successBurstTimer = useRef<number | null>(null)
   const successOriginRef = useRef<{ x: number; y: number } | null>(null)
+  const levelStartedAtRef = useRef<number | null>(null)
   const dragId = useRef(0)
   const closeSettingsRef = useRef<HTMLButtonElement | null>(null)
   const sound = useRef<SoundController | null>(null)
@@ -291,6 +310,8 @@ function App() {
     (levelId = recommendedLevelId) => {
       sound.current?.unlock()
       successOriginRef.current = null
+      levelStartedAtRef.current = performance.now()
+      setCompletionTimeMs(null)
       setEntryLevelId(null)
       setChoiceOrder((current) => createChoiceOrder(levelId, current))
       setProgress((current) => ({ ...current, lastLevelId: levelId }))
@@ -302,6 +323,7 @@ function App() {
   const returnToPath = useCallback(() => {
     sound.current?.stopHold()
     successOriginRef.current = null
+    levelStartedAtRef.current = null
     setDrag(null)
     dispatch(createHomeGameState(progress.lastLevelId))
   }, [progress.lastLevelId])
@@ -309,6 +331,8 @@ function App() {
   const restartPack = useCallback(() => {
     const nextProgress = { lastLevelId: LEVELS[0].id, completedLevelIds: [] }
     successOriginRef.current = null
+    levelStartedAtRef.current = performance.now()
+    setCompletionTimeMs(null)
     setChoiceOrder((current) => createChoiceOrder(LEVELS[0].id, current))
     setProgress(nextProgress)
     dispatch(createInitialGameState(LEVELS[0].id))
@@ -327,6 +351,7 @@ function App() {
       'fx_level_success',
       ...level.choices.flatMap((choice) => [
         choice.soundId,
+        getChoiceHoldSoundId(choice),
         getChoicePlacementSoundId(choice),
       ]),
     ]
@@ -341,6 +366,18 @@ function App() {
     sound.current?.unlock()
     sound.current?.play(`fx_level_success_${variant}`)
   }, [])
+
+  const finishTrailUnlock = useCallback(() => {
+    setTrailUnlock(null)
+  }, [])
+
+  const previewTrailUnlock = useCallback(() => {
+    const recommendedLevel = levelById(recommendedLevelId) ?? LEVELS[0]
+    setTrailUnlock({
+      id: Date.now(),
+      categoryId: recommendedLevel.categoryId,
+    })
+  }, [recommendedLevelId])
 
   const showFailureFeedback = useCallback((x: number, y: number) => {
     if (feedbackTimer.current) {
@@ -404,7 +441,7 @@ function App() {
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
     sound.current?.unlock()
-    sound.current?.startHold(getChoicePlacementSoundId(choice))
+    sound.current?.startHold(getChoiceHoldSoundId(choice))
 
     const point = getPoint(event)
     const rect = event.currentTarget.getBoundingClientRect()
@@ -497,8 +534,11 @@ function App() {
 
       if (nearest) {
         successOriginRef.current = { x: dropX, y: dropY }
-        sound.current?.play('fx_success')
-        sound.current?.play(getChoicePlacementSoundId(choice), { placement: true })
+        const placementSoundId = getChoicePlacementSoundId(choice)
+        if (!hasRecordedAudio(placementSoundId)) {
+          sound.current?.play('fx_success')
+        }
+        sound.current?.play(placementSoundId, { placement: true })
         dispatch((current) =>
           gameReducer(current, {
             type: 'PLACE_CHOICE',
@@ -586,8 +626,11 @@ function App() {
     } else {
       successOriginRef.current = completionPoint()
     }
-    sound.current?.play('fx_success')
-    sound.current?.play(getChoicePlacementSoundId(choice), { placement: true })
+    const placementSoundId = getChoicePlacementSoundId(choice)
+    if (!hasRecordedAudio(placementSoundId)) {
+      sound.current?.play('fx_success')
+    }
+    sound.current?.play(placementSoundId, { placement: true })
     dispatch((current) =>
       gameReducer(current, {
         type: 'PLACE_CHOICE',
@@ -599,6 +642,12 @@ function App() {
 
   useEffect(() => {
     if (!isLevelComplete(gameState, level)) return
+
+    const finishedAt = performance.now()
+    setCompletionTimeMs(
+      levelStartedAtRef.current == null ? 0 : finishedAt - levelStartedAtRef.current,
+    )
+    levelStartedAtRef.current = null
 
     const burstTimer = window.setTimeout(showSuccessBurst, 0)
     sound.current?.play('fx_level_success')
@@ -631,9 +680,22 @@ function App() {
       return
     }
 
+    const nextLevel = levelById(nextLevelId)
     setProgress((current) => ({ ...current, lastLevelId: nextLevelId }))
     successOriginRef.current = null
     setChoiceOrder((current) => createChoiceOrder(nextLevelId, current))
+
+    if (nextLevel && isLastLevelInCategory(gameState.levelId)) {
+      setTrailUnlock({
+        id: Date.now(),
+        categoryId: nextLevel.categoryId,
+      })
+      dispatch(createHomeGameState(nextLevelId))
+      return
+    }
+
+    levelStartedAtRef.current = performance.now()
+    setCompletionTimeMs(null)
     dispatch(createInitialGameState(nextLevelId))
   }, [gameState.levelId])
 
@@ -661,6 +723,10 @@ function App() {
           <StagePath
             completedLevelIds={progress.completedLevelIds}
             recommendedLevelId={recommendedLevelId}
+            unlockingCategoryId={trailUnlock?.categoryId ?? null}
+            unlockAnimationKey={trailUnlock?.id ?? 0}
+            onUnlockAnimationComplete={finishTrailUnlock}
+            onPreviewUnlock={previewTrailUnlock}
             onStartLevel={(levelId) => setEntryLevelId(levelId ?? recommendedLevelId)}
           />
           {entryLevelId && (
@@ -733,7 +799,11 @@ function App() {
           {successBurst && <CompletionBurst burst={successBurst} />}
 
           {gameState.status === 'levelComplete' && (
-            <CompletionDialog levelId={level.id} onContinue={continueAfterComplete} />
+            <CompletionDialog
+              levelId={level.id}
+              completionTimeMs={completionTimeMs}
+              onContinue={continueAfterComplete}
+            />
           )}
 
           {gameState.status === 'packComplete' && (
@@ -849,12 +919,20 @@ type TargetWordProps = {
 type StagePathProps = {
   completedLevelIds: string[]
   recommendedLevelId: string
+  unlockingCategoryId: string | null
+  unlockAnimationKey: number
+  onUnlockAnimationComplete: () => void
+  onPreviewUnlock: () => void
   onStartLevel: (levelId?: string) => void
 }
 
 function StagePath({
   completedLevelIds,
   recommendedLevelId,
+  unlockingCategoryId,
+  unlockAnimationKey,
+  onUnlockAnimationComplete,
+  onPreviewUnlock,
   onStartLevel,
 }: StagePathProps) {
   const recommendedNodeRef = useRef<HTMLButtonElement | null>(null)
@@ -867,6 +945,7 @@ function StagePath({
   )
   const activeCategory =
     CATEGORIES.find((category) => category.id === recommendedLevel.categoryId) ?? CATEGORIES[0]
+  const openCategoryOrder = activeCategory.order
   const levelGap = 78
   const trailTop = 104
   const trailBottom = 190
@@ -890,6 +969,13 @@ function StagePath({
       behavior: 'instant',
     })
   }, [recommendedLevelId])
+
+  useEffect(() => {
+    if (!unlockingCategoryId) return
+
+    const timer = window.setTimeout(onUnlockAnimationComplete, 5600)
+    return () => window.clearTimeout(timer)
+  }, [onUnlockAnimationComplete, unlockingCategoryId, unlockAnimationKey])
 
   return (
     <section className="stage-path" aria-label="שביל השלבים" data-testid="stage-path">
@@ -941,10 +1027,20 @@ function StagePath({
             {CATEGORIES.map((category) => {
               const firstLevelIndex = LEVELS.findIndex((level) => level.categoryId === category.id)
               const point = trailPoints[Math.max(firstLevelIndex, 0)]
+              const isCategoryOpen = category.order <= openCategoryOrder
+              const isCurrentCategory = category.id === activeCategory.id
+              const isUnlockingCategory = category.id === unlockingCategoryId
 
               return (
                 <span
                   key={category.id}
+                  className={[
+                    isCategoryOpen ? 'category-open' : 'category-locked',
+                    isCurrentCategory ? 'category-current' : '',
+                    isUnlockingCategory ? 'category-unlocking' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                   style={
                     {
                       '--category-color': category.color,
@@ -963,7 +1059,12 @@ function StagePath({
               const category = CATEGORIES.find((item) => item.id === level.categoryId) ?? activeCategory
               const isCompleted = completed.has(level.id)
               const isNext = level.id === recommendedLevel.id
-              const isUnlocked = isCompleted || isNext
+              const isPlayable = isCompleted || isNext
+              const isCategoryOpen = category.order <= openCategoryOrder
+              const isFutureCategory = !isCategoryOpen
+              const isSequenceLocked = isCategoryOpen && !isPlayable
+              const isUnlockingCategory = category.id === unlockingCategoryId
+              const categoryFirstLevelIndex = LEVELS.findIndex((candidate) => candidate.categoryId === category.id)
               const point = trailPoints[index]
               const revealIndex = Math.min(Math.abs(index - recommendedIndex), 8)
               const solutionText = level.target.display
@@ -984,14 +1085,17 @@ function StagePath({
                     'level-dot',
                     isCompleted ? 'completed' : '',
                     isNext ? 'next' : '',
-                    !isUnlocked ? 'locked' : '',
+                    !isPlayable ? 'locked' : '',
+                    isSequenceLocked ? 'sequence-locked' : '',
+                    isFutureCategory ? 'future-category' : '',
+                    isUnlockingCategory ? 'category-unlocking' : '',
                   ]
                     .filter(Boolean)
                     .join(' ')}
                   onClick={() => {
-                    if (isUnlocked) onStartLevel(level.id)
+                    if (isPlayable) onStartLevel(level.id)
                   }}
-                  disabled={!isUnlocked}
+                  disabled={!isPlayable}
                   aria-label={`${level.title}, ${
                     isCompleted ? 'הושלם' : isNext ? 'השלב הבא' : 'נעול'
                   }`}
@@ -999,6 +1103,7 @@ function StagePath({
                     {
                       '--node-index': index,
                       '--node-reveal-index': revealIndex,
+                      '--unlock-step': Math.max(0, index - categoryFirstLevelIndex),
                       '--category-color': category.color,
                       '--map-x': `${point.x}px`,
                       '--map-y': `${point.y}px`,
@@ -1024,12 +1129,20 @@ function StagePath({
                           <Check />
                         </span>
                       </>
-                    ) : isNext ? (
+                    ) : isCategoryOpen ? (
                       index + 1
                     ) : (
                       <Lock aria-hidden="true" />
                     )}
                   </span>
+                  {isUnlockingCategory && !isCompleted && (
+                    <>
+                      <span className="unlock-lock" aria-hidden="true">
+                        <Lock />
+                      </span>
+                      <span className="unlock-glow" aria-hidden="true" />
+                    </>
+                  )}
                 </button>
               )
             })}
@@ -1044,6 +1157,16 @@ function StagePath({
           <Play aria-hidden="true" />
           המשיכו
         </button>
+        {import.meta.env.DEV && (
+          <button
+            className="dev-unlock-test"
+            type="button"
+            onClick={onPreviewUnlock}
+            aria-label="בדיקת אנימציית פתיחת אזור"
+          >
+            בדיקת פתיחה
+          </button>
+        )}
       </div>
 
       <div className="path-summary" aria-live="polite">
@@ -1094,11 +1217,20 @@ function LevelEntryDialog({
   )
 }
 
-function CompletionDialog({ levelId, onContinue }: { levelId: string; onContinue: () => void }) {
+function CompletionDialog({
+  levelId,
+  completionTimeMs,
+  onContinue,
+}: {
+  levelId: string
+  completionTimeMs: number | null
+  onContinue: () => void
+}) {
   const level = levelById(levelId) ?? LEVELS[0]
   const nextLevelId = getNextLevelId(levelId)
   const nextLevel = nextLevelId ? levelById(nextLevelId) : null
   const nextCategoryTitle = getNextCategoryTitle(levelId)
+  const completionTime = formatStopwatchTime(completionTimeMs ?? 0)
 
   return (
     <div className="modal-layer completion-layer" role="presentation">
@@ -1111,6 +1243,10 @@ function CompletionDialog({ levelId, onContinue }: { levelId: string; onContinue
           <Star />
         </div>
         <h2>סיימתם את שלב {levelNumber(level.id)}</h2>
+        <div className="completion-time" aria-label={`זמן השלמה ${completionTime}`}>
+          <span>זמן</span>
+          <strong>{completionTime}</strong>
+        </div>
         <p>מעולה!</p>
         <div className="unlock-list">
           {nextLevel && (
@@ -1319,11 +1455,102 @@ function SettingsPanel({
           </div>
         </div>
 
+        {import.meta.env.DEV && <AudioSampleReview />}
+
         <button className="restart-button" type="button" onClick={onRestart}>
           <RotateCcw aria-hidden="true" />
           להתחיל מהתחלה
         </button>
       </section>
+    </div>
+  )
+}
+
+function AudioSampleReview() {
+  const [status, setStatus] = useState<Record<string, 'checking' | 'ready' | 'missing'>>(() =>
+    Object.fromEntries(
+      AUDIO_SAMPLE_CLIPS.map((clip) => [clip.soundId, 'checking' as const]),
+    ),
+  )
+
+  const fetchSampleStatus = useCallback(() => {
+    AUDIO_SAMPLE_CLIPS.forEach((clip) => {
+      void fetch(clip.src, { method: 'HEAD', cache: 'no-store' })
+        .then((response) => {
+          setStatus((current) => ({
+            ...current,
+            [clip.soundId]: response.ok ? 'ready' : 'missing',
+          }))
+        })
+        .catch(() => {
+          setStatus((current) => ({
+            ...current,
+            [clip.soundId]: 'missing',
+          }))
+        })
+    })
+  }, [])
+
+  const checkSamples = useCallback(() => {
+    setStatus(
+      Object.fromEntries(
+        AUDIO_SAMPLE_CLIPS.map((clip) => [clip.soundId, 'checking' as const]),
+      ),
+    )
+    fetchSampleStatus()
+  }, [fetchSampleStatus])
+
+  useEffect(() => {
+    fetchSampleStatus()
+  }, [fetchSampleStatus])
+
+  const readyCount = AUDIO_SAMPLE_CLIPS.filter((clip) => status[clip.soundId] === 'ready').length
+
+  return (
+    <div className="audio-sample-review" aria-label="בדיקת דוגמאות קול">
+      <header>
+        <div>
+          <strong>דוגמאות קול AI</strong>
+          <span>
+            {readyCount}/{AUDIO_SAMPLE_CLIPS.length} מוכנות
+          </span>
+        </div>
+        <button type="button" onClick={checkSamples}>
+          רענון
+        </button>
+      </header>
+
+      <div className="audio-sample-list">
+        {AUDIO_SAMPLE_CLIPS.map((clip) => (
+          <AudioSampleRow key={clip.soundId} clip={clip} status={status[clip.soundId] ?? 'checking'} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AudioSampleRow({
+  clip,
+  status,
+}: {
+  clip: AudioSampleClip
+  status: 'checking' | 'ready' | 'missing'
+}) {
+  return (
+    <div className={`audio-sample-row ${status}`}>
+      <div className="audio-sample-meta">
+        <b>{clip.text}</b>
+        <span>{clip.soundId}</span>
+      </div>
+      {status === 'ready' ? (
+        <audio controls preload="none" src={clip.src}>
+          <a href={clip.src}>השמעה</a>
+        </audio>
+      ) : (
+        <span className="audio-sample-status">
+          {status === 'checking' ? 'בודק...' : 'חסר קובץ'}
+        </span>
+      )}
     </div>
   )
 }

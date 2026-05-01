@@ -8,6 +8,7 @@ export class SoundController {
   private audioContext: AudioContext | null = null
   private buffers = new Map<string, AudioBuffer>()
   private holdTimer: number | null = null
+  private holdNodes: Array<{ source: AudioBufferSourceNode; gain: GainNode }> = []
   private settings: GameSettings
   private assetStep = 0
 
@@ -42,17 +43,19 @@ export class SoundController {
 
   startHold(soundId: string) {
     this.stopHold()
-    this.play(soundId, { held: true })
+    this.playHold(soundId)
 
     this.holdTimer = window.setInterval(() => {
-      this.play(soundId, { held: true })
-    }, HOLD_INTERVAL_MS)
+      this.playHold(soundId)
+    }, HOLD_INTERVAL_MS + 110)
   }
 
   stopHold() {
-    if (!this.holdTimer) return
-    window.clearInterval(this.holdTimer)
-    this.holdTimer = null
+    if (this.holdTimer) {
+      window.clearInterval(this.holdTimer)
+      this.holdTimer = null
+    }
+    this.stopHoldNodes()
   }
 
   play(soundId: string, options: { held?: boolean; placement?: boolean } = {}) {
@@ -99,6 +102,62 @@ export class SoundController {
     })
 
     return true
+  }
+
+  private playHold(soundId: string) {
+    if (this.settings.muted || this.settings.volume <= 0) return
+
+    this.unlock()
+    const assets = AUDIO_ASSETS[soundId]
+    if (!assets?.length || !this.audioContext) return
+
+    const src = assets[this.assetStep++ % assets.length]
+
+    void this.loadBuffer(src).then((buffer) => {
+      if (!buffer || !this.audioContext || this.settings.muted || this.settings.volume <= 0 || !this.holdTimer) {
+        return
+      }
+
+      this.stopHoldNodes(0.035)
+
+      const now = this.audioContext.currentTime
+      const source = this.audioContext.createBufferSource()
+      const gain = this.audioContext.createGain()
+      source.buffer = buffer
+      source.playbackRate.value = this.getAssetRate()
+      gain.gain.setValueAtTime(0.0001, now)
+      gain.gain.linearRampToValueAtTime(this.settings.volume * 0.86, now + 0.018)
+      gain.gain.setValueAtTime(this.settings.volume * 0.86, now + 0.36)
+      gain.gain.linearRampToValueAtTime(0.0001, now + 0.46)
+      source.connect(gain)
+      gain.connect(this.audioContext.destination)
+      source.start(now)
+      source.stop(now + 0.5)
+
+      const node = { source, gain }
+      this.holdNodes = [node]
+      source.addEventListener('ended', () => {
+        this.holdNodes = this.holdNodes.filter((candidate) => candidate !== node)
+      })
+    })
+  }
+
+  private stopHoldNodes(fadeSeconds = 0.05) {
+    if (!this.audioContext || !this.holdNodes.length) return
+
+    const now = this.audioContext.currentTime
+    for (const { source, gain } of this.holdNodes) {
+      try {
+        gain.gain.cancelScheduledValues(now)
+        gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now)
+        gain.gain.linearRampToValueAtTime(0.0001, now + fadeSeconds)
+        source.stop(now + fadeSeconds + 0.01)
+      } catch {
+        // A node may already have ended; stopping is best-effort.
+      }
+    }
+
+    this.holdNodes = []
   }
 
   private async loadBuffer(src: string) {

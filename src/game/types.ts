@@ -1,4 +1,10 @@
 export type Difficulty =
+  | 'first-letters'
+  | 'first-sounds'
+  | 'more-letters'
+  | 'new-sounds'
+  | 'full-sounds'
+  | 'letter-review'
   | 'letters'
   | 'final-letters'
   | 'missing-letter'
@@ -16,16 +22,15 @@ export type Difficulty =
   | 'first-reading'
 
 export type CategoryId =
-  | 'letters'
+  | 'first-letters'
+  | 'first-sounds'
+  | 'more-letters'
+  | 'new-sounds'
+  | 'full-sounds'
+  | 'letter-review'
   | 'final-letters'
-  | 'patah-qamats'
-  | 'hiriq'
-  | 'tsere-segol'
-  | 'holam'
-  | 'qubuts-shuruk'
-  | 'mixed-a-i-e'
-  | 'mixed-o-u'
-  | 'first-reading'
+  | 'first-words'
+  | 'reading-together'
 
 export type VowelId =
   | 'patah'
@@ -46,6 +51,15 @@ export type LevelKind =
   | 'word-match'
   | 'syllable-match'
   | 'nikkud-word-build'
+
+export type LearningFocus =
+  | 'letter'
+  | 'letter-sound'
+  | 'vowel-sound'
+  | 'same-vowel-review'
+  | 'mixed-sound-review'
+  | 'word-build'
+  | 'final-letter'
 
 export type Category = {
   id: CategoryId
@@ -88,6 +102,7 @@ export type Level = {
   categoryId: CategoryId
   categoryTitle: string
   levelKind: LevelKind
+  learningFocus: LearningFocus
   order: number
   difficulty: Difficulty
   promptText: string

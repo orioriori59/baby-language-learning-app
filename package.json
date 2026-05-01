@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "audio:samples": "node scripts/generate-audio-samples.mjs",
     "generate:audio": "node scripts/generate-audio-pack.mjs"
   },
   "dependencies": {

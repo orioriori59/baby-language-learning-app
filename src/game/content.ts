@@ -1,4 +1,5 @@
-import type { Category, Choice, GameSettings, Level } from './types'
+import type { Category, CategoryId, Choice, GameSettings, LearningFocus, Level } from './types'
+import { AUDIO_SAMPLE_CLIPS } from './audioSamples'
 
 export const PATAH = '\u05B7'
 export const QAMATS = '\u05B8'
@@ -20,17 +21,6 @@ export type VowelId =
   | 'shuruk'
 
 type LevelDraft = Omit<Level, 'categoryTitle' | 'order'>
-type CategoryId =
-  | 'letters'
-  | 'final-letters'
-  | 'patah-qamats'
-  | 'hiriq'
-  | 'tsere-segol'
-  | 'holam'
-  | 'qubuts-shuruk'
-  | 'mixed-a-i-e'
-  | 'mixed-o-u'
-  | 'first-reading'
 type WordPart = { letter: string; vowel?: VowelId }
 type VowelPart = { letter: string; vowel: VowelId }
 type WordBankEntry = {
@@ -51,73 +41,66 @@ export const DEFAULT_SETTINGS: GameSettings = {
 
 export const CATEGORIES: Category[] = [
   {
-    id: 'letters',
-    title: 'אותיות',
-    description: 'מזהים אותיות ומרכיבים מילים ראשונות בלי ניקוד.',
+    id: 'first-letters',
+    title: 'אותיות ראשונות',
+    description: 'מכירים את א, ב, מ ומתחילים לשמוע a ו-i.',
     order: 1,
     color: '#3466d9',
   },
   {
-    id: 'final-letters',
-    title: 'אותיות סופיות',
-    description: 'מזהים את הצורות הסופיות בתוך מילים קצרות.',
+    id: 'first-sounds',
+    title: 'צלילי א ב מ',
+    description: 'מחזקים את הצלילים הראשונים ומוסיפים י, ד, ג.',
     order: 2,
     color: '#1fa2a6',
   },
   {
-    id: 'patah-qamats',
-    title: 'פתח וקמץ',
-    description: 'שני סימני ניקוד שונים שנשמעים כמו a.',
+    id: 'more-letters',
+    title: 'עוד אותיות',
+    description: 'מוסיפים ח, ל, ה ומתרגלים a, i, e ו-o.',
     order: 3,
     color: '#d77936',
   },
   {
-    id: 'hiriq',
-    title: 'חיריק',
-    description: 'קוראים צלילי i קצרים ומילים עם חיריק.',
+    id: 'new-sounds',
+    title: 'צלילים חדשים',
+    description: 'מוסיפים ו, ז, ט ומכירים גם צלילי u.',
     order: 4,
     color: '#4fbf67',
   },
   {
-    id: 'tsere-segol',
-    title: 'צירה וסגול',
-    description: 'מתרגלים שני סימני e במילים ובצירופים.',
+    id: 'full-sounds',
+    title: 'כל הצלילים',
+    description: 'מוסיפים כ, נ, ס, ע, פ, צ ומערבבים ניקודים.',
     order: 5,
     color: '#d64f8c',
   },
   {
-    id: 'holam',
-    title: 'חולם',
-    description: 'מזהים צלילי o בצירופים ובמילים.',
+    id: 'letter-review',
+    title: 'חזרה על אותיות',
+    description: 'משלימים את ק, ר, ש, ת וחוזרים על כל הצלילים.',
     order: 6,
     color: '#7a5be8',
   },
   {
-    id: 'qubuts-shuruk',
-    title: 'קובוץ ושורוק',
-    description: 'מבחינים בין שני סימני u ומרכיבים מילים.',
+    id: 'final-letters',
+    title: 'אותיות סופיות',
+    description: 'מזהים ך, ם, ן, ף, ץ בסוף מילים.',
     order: 7,
     color: '#d6a81f',
   },
   {
-    id: 'mixed-a-i-e',
-    title: 'ערבוב a i e',
-    description: 'חוזרים על פתח, קמץ, חיריק, צירה וסגול.',
+    id: 'first-words',
+    title: 'מילים ראשונות',
+    description: 'בונים מילים עם שילובי ניקוד שכבר למדנו.',
     order: 8,
     color: '#df5b61',
   },
   {
-    id: 'mixed-o-u',
-    title: 'ערבוב o u',
-    description: 'חוזרים על חולם, קובוץ ושורוק.',
+    id: 'reading-together',
+    title: 'קוראים יחד',
+    description: 'חוזרים על כל האותיות, הניקוד והמילים.',
     order: 9,
-    color: '#5c7f3d',
-  },
-  {
-    id: 'first-reading',
-    title: 'קריאה ראשונה',
-    description: 'קוראים מילים קצרות מכל סימני הניקוד שנלמדו.',
-    order: 10,
     color: '#8a5a44',
   },
 ]
@@ -285,7 +268,7 @@ const vowelMarks: Record<VowelId, string> = {
   shuruk: `ו${DAGESH}`,
 }
 
-export const WORD_BANKS: Record<CategoryId, readonly WordBankEntry[]> = {
+export const WORD_BANKS: Record<string, readonly WordBankEntry[]> = {
   letters: [],
   'final-letters': [],
   'patah-qamats': [
@@ -469,10 +452,16 @@ function withCategory(draft: LevelDraft): Level {
 
 function idForWordLevel(word: string, kind: string, categoryId: CategoryId) {
   const base = `${slugForWord(word)}-${kind}`
-  return categoryId === 'letters' || categoryId === 'patah-qamats' ? base : `${categoryId}-${base}`
+  return `${categoryId}-${base}`
 }
 
-function makeLetterLevel(letter: string, distractors: string[], categoryId: CategoryId = 'letters', suffix?: string): LevelDraft {
+function makeLetterLevel(
+  letter: string,
+  distractors: string[],
+  categoryId: CategoryId = 'first-letters',
+  suffix?: string,
+  learningFocus: LearningFocus = 'letter',
+): LevelDraft {
   const id = suffix ? `letter-${slugForLetter(letter)}-${suffix}` : `letter-${slugForLetter(letter)}`
 
   return {
@@ -480,6 +469,7 @@ function makeLetterLevel(letter: string, distractors: string[], categoryId: Cate
     title: `האות ${letter}`,
     categoryId,
     levelKind: 'letter-match',
+    learningFocus,
     difficulty: 'letters',
     promptText: `גררו את ${letter} למקום שלה.`,
     target: {
@@ -502,7 +492,8 @@ function makeMissingWordLevel(
   word: string,
   missingIndex: number,
   distractors: string[],
-  categoryId: CategoryId = 'letters',
+  categoryId: CategoryId = 'first-letters',
+  learningFocus: LearningFocus = 'word-build',
 ): LevelDraft {
   const letters = [...word]
   const missing = letters[missingIndex]
@@ -512,6 +503,7 @@ function makeMissingWordLevel(
     title: `השלימו ${word}`,
     categoryId,
     levelKind: 'missing-letter',
+    learningFocus,
     difficulty: 'missing-letter',
     promptText: `איזו אות חסרה במילה ${word}?`,
     target: {
@@ -529,7 +521,12 @@ function makeMissingWordLevel(
   }
 }
 
-function makeFullWordLevel(word: string, order?: string[], categoryId: CategoryId = 'letters'): LevelDraft {
+function makeFullWordLevel(
+  word: string,
+  order?: string[],
+  categoryId: CategoryId = 'first-letters',
+  learningFocus: LearningFocus = 'word-build',
+): LevelDraft {
   const letters = [...word]
   const choices = order ?? [...new Set(letters)].reverse()
 
@@ -538,6 +535,7 @@ function makeFullWordLevel(word: string, order?: string[], categoryId: CategoryI
     title: `בונים ${word}`,
     categoryId,
     levelKind: 'word-build',
+    learningFocus,
     difficulty: 'cvc-word',
     promptText: `גררו את האותיות למילה ${word}.`,
     target: {
@@ -554,12 +552,18 @@ function makeFullWordLevel(word: string, order?: string[], categoryId: CategoryI
   }
 }
 
-function makeSightWordLevel(word: string, distractor: string, categoryId: CategoryId = 'letters'): LevelDraft {
+function makeSightWordLevel(
+  word: string,
+  distractor: string,
+  categoryId: CategoryId = 'first-letters',
+  learningFocus: LearningFocus = 'mixed-sound-review',
+): LevelDraft {
   return {
     id: idForWordLevel(word, 'sight', categoryId),
     title: `המילה ${word}`,
     categoryId,
     levelKind: 'word-match',
+    learningFocus,
     difficulty: 'sight-word',
     promptText: `התאימו את המילה ${word}.`,
     target: {
@@ -583,15 +587,18 @@ function makeSyllableLevel(
   vowel: VowelId,
   distractors: readonly VowelPart[],
   categoryId: CategoryId,
+  learningFocus: LearningFocus = 'vowel-sound',
+  idSuffix?: string,
 ): LevelDraft {
   const syllable = makeSyllable(letter, vowel)
-  const levelId = categoryId === 'patah-qamats' ? `${syllable.id}-match` : `${categoryId}-${syllable.id}-match`
+  const levelId = `${categoryId}-${syllable.id}${idSuffix ? `-${idSuffix}` : ''}-match`
 
   return {
     id: levelId,
     title: `${syllable.text}`,
     categoryId,
     levelKind: 'syllable-match',
+    learningFocus,
     difficulty: 'syllable',
     promptText: `גררו את ${syllable.text} ושמעו את הצליל.`,
     target: {
@@ -610,7 +617,12 @@ function makeSyllableLevel(
   }
 }
 
-function makeNikkudWordLevel(entry: WordBankEntry, categoryId: CategoryId): LevelDraft {
+function makeNikkudWordLevel(
+  entry: WordBankEntry,
+  categoryId: CategoryId,
+  learningFocus: LearningFocus = 'word-build',
+  idSuffix?: string,
+): LevelDraft {
   const choices = [
     ...entry.parts
       .filter((part): part is VowelPart => Boolean(part.vowel))
@@ -619,10 +631,11 @@ function makeNikkudWordLevel(entry: WordBankEntry, categoryId: CategoryId): Leve
   ]
 
   return {
-    id: idForWordLevel(entry.word, 'nikkud', categoryId),
+    id: idForWordLevel(entry.word, idSuffix ? `nikkud-${idSuffix}` : 'nikkud', categoryId),
     title: `בונים ${entry.word}`,
     categoryId,
     levelKind: 'nikkud-word-build',
+    learningFocus,
     difficulty: 'nikkud-word',
     promptText: `גררו את הצירופים המנוקדים למילה ${entry.word}.`,
     target: {
@@ -675,234 +688,336 @@ function distractorsFor(unit: VowelPart, units: readonly VowelPart[], index: num
   return selected
 }
 
-function makeSyllableSeries(categoryId: CategoryId, units: readonly VowelPart[]) {
-  return units.map((unit, index) => makeSyllableLevel(unit.letter, unit.vowel, distractorsFor(unit, units, index), categoryId))
+type CurriculumSection = {
+  id: CategoryId
+  newLetters: readonly string[]
+  introducedLetters: readonly string[]
+  vowels: readonly VowelId[]
+  expectedLevelCount: number
 }
 
-const letterLevels: LevelDraft[] = [
-  makeLetterLevel('א', ['ב']),
-  makeLetterLevel('ב', ['מ']),
-  makeLetterLevel('י', ['ו']),
-  makeLetterLevel('ת', ['ד']),
-  makeMissingWordLevel('בית', 1, ['א', 'מ']),
-  makeFullWordLevel('בית', ['ב', 'י', 'ת']),
-  makeLetterLevel('ד', ['ר']),
-  makeLetterLevel('ג', ['ז']),
-  makeFullWordLevel('דג', ['ד', 'ג']),
-  makeLetterLevel('מ', ['נ']),
-  makeFullWordLevel('ים', ['י', 'ם']),
-  makeLetterLevel('ח', ['כ']),
-  makeLetterLevel('ל', ['י']),
-  makeFullWordLevel('חלב', ['ח', 'ל', 'ב']),
-  makeSightWordLevel('בית', 'דג'),
-  makeSightWordLevel('דג', 'ים'),
-  makeLetterLevel('ה', ['ח']),
-  makeLetterLevel('ו', ['י']),
-  makeLetterLevel('ז', ['ג']),
-  makeLetterLevel('ט', ['ת']),
-  makeLetterLevel('כ', ['ח']),
-  makeLetterLevel('נ', ['מ']),
-  makeLetterLevel('ס', ['ם']),
-  makeLetterLevel('ע', ['א']),
-  makeLetterLevel('פ', ['ב']),
-  makeLetterLevel('צ', ['ץ']),
-  makeLetterLevel('ק', ['כ']),
-  makeLetterLevel('ר', ['ד']),
-  makeLetterLevel('ש', ['ס']),
-  makeMissingWordLevel('פה', 1, ['ח', 'ת']),
-  makeFullWordLevel('אור', ['א', 'ו', 'ר']),
-  makeMissingWordLevel('נר', 0, ['מ', 'ג']),
-  makeFullWordLevel('כוס', ['כ', 'ו', 'ס']),
-  makeSightWordLevel('ים', 'בית'),
-  makeFullWordLevel('ספר', ['ס', 'פ', 'ר']),
-  makeSightWordLevel('חלב', 'ספר'),
+export const CURRICULUM_SECTIONS: readonly CurriculumSection[] = [
+  {
+    id: 'first-letters',
+    newLetters: ['א', 'ב', 'מ'],
+    introducedLetters: ['א', 'ב', 'מ'],
+    vowels: ['patah', 'qamats', 'hiriq'],
+    expectedLevelCount: 24,
+  },
+  {
+    id: 'first-sounds',
+    newLetters: ['י', 'ד', 'ג'],
+    introducedLetters: ['א', 'ב', 'מ', 'י', 'ד', 'ג'],
+    vowels: ['patah', 'qamats', 'hiriq', 'tsere', 'segol'],
+    expectedLevelCount: 26,
+  },
+  {
+    id: 'more-letters',
+    newLetters: ['ח', 'ל', 'ה'],
+    introducedLetters: ['א', 'ב', 'מ', 'י', 'ד', 'ג', 'ח', 'ל', 'ה'],
+    vowels: ['patah', 'qamats', 'hiriq', 'tsere', 'segol', 'holam'],
+    expectedLevelCount: 32,
+  },
+  {
+    id: 'new-sounds',
+    newLetters: ['ו', 'ז', 'ט'],
+    introducedLetters: ['א', 'ב', 'מ', 'י', 'ד', 'ג', 'ח', 'ל', 'ה', 'ו', 'ז', 'ט'],
+    vowels: ['patah', 'qamats', 'hiriq', 'tsere', 'segol', 'holam', 'qubuts', 'shuruk'],
+    expectedLevelCount: 32,
+  },
+  {
+    id: 'full-sounds',
+    newLetters: ['כ', 'נ', 'ס', 'ע', 'פ', 'צ'],
+    introducedLetters: ['א', 'ב', 'מ', 'י', 'ד', 'ג', 'ח', 'ל', 'ה', 'ו', 'ז', 'ט', 'כ', 'נ', 'ס', 'ע', 'פ', 'צ'],
+    vowels: ['patah', 'qamats', 'hiriq', 'tsere', 'segol', 'holam', 'qubuts', 'shuruk'],
+    expectedLevelCount: 20,
+  },
+  {
+    id: 'letter-review',
+    newLetters: ['ק', 'ר', 'ש', 'ת'],
+    introducedLetters: [
+      'א',
+      'ב',
+      'מ',
+      'י',
+      'ד',
+      'ג',
+      'ח',
+      'ל',
+      'ה',
+      'ו',
+      'ז',
+      'ט',
+      'כ',
+      'נ',
+      'ס',
+      'ע',
+      'פ',
+      'צ',
+      'ק',
+      'ר',
+      'ש',
+      'ת',
+    ],
+    vowels: ['patah', 'qamats', 'hiriq', 'tsere', 'segol', 'holam', 'qubuts', 'shuruk'],
+    expectedLevelCount: 16,
+  },
+  {
+    id: 'final-letters',
+    newLetters: ['ך', 'ם', 'ן', 'ף', 'ץ'],
+    introducedLetters: [
+      'א',
+      'ב',
+      'מ',
+      'י',
+      'ד',
+      'ג',
+      'ח',
+      'ל',
+      'ה',
+      'ו',
+      'ז',
+      'ט',
+      'כ',
+      'נ',
+      'ס',
+      'ע',
+      'פ',
+      'צ',
+      'ק',
+      'ר',
+      'ש',
+      'ת',
+      'ך',
+      'ם',
+      'ן',
+      'ף',
+      'ץ',
+    ],
+    vowels: ['patah', 'qamats', 'hiriq', 'tsere', 'segol', 'holam', 'qubuts', 'shuruk'],
+    expectedLevelCount: 25,
+  },
+  {
+    id: 'first-words',
+    newLetters: [],
+    introducedLetters: LETTER_SEQUENCE,
+    vowels: ['patah', 'qamats', 'hiriq', 'tsere', 'segol', 'holam', 'qubuts', 'shuruk'],
+    expectedLevelCount: 30,
+  },
+  {
+    id: 'reading-together',
+    newLetters: [],
+    introducedLetters: LETTER_SEQUENCE,
+    vowels: ['patah', 'qamats', 'hiriq', 'tsere', 'segol', 'holam', 'qubuts', 'shuruk'],
+    expectedLevelCount: 15,
+  },
 ]
 
-const finalLetterLevels: LevelDraft[] = [
-  makeLetterLevel('ך', ['כ'], 'final-letters', 'final-1'),
-  makeLetterLevel('ם', ['מ'], 'final-letters', 'final-2'),
-  makeLetterLevel('ן', ['נ'], 'final-letters', 'final-3'),
-  makeLetterLevel('ף', ['פ'], 'final-letters', 'final-4'),
-  makeLetterLevel('ץ', ['צ'], 'final-letters', 'final-5'),
-  makeMissingWordLevel('ים', 1, ['י', 'מ'], 'final-letters'),
-  makeMissingWordLevel('גן', 1, ['ג', 'נ'], 'final-letters'),
-  makeMissingWordLevel('אף', 1, ['א', 'פ'], 'final-letters'),
-  makeMissingWordLevel('עץ', 1, ['ע', 'צ'], 'final-letters'),
-  makeMissingWordLevel('מלך', 2, ['כ', 'מ'], 'final-letters'),
-  makeMissingWordLevel('כנף', 2, ['פ', 'נ'], 'final-letters'),
-  makeMissingWordLevel('סוף', 2, ['פ', 'ס'], 'final-letters'),
-  makeMissingWordLevel('קיץ', 2, ['צ', 'ק'], 'final-letters'),
-  makeMissingWordLevel('רך', 1, ['כ', 'ר'], 'final-letters'),
-  makeFullWordLevel('ים', ['י', 'ם'], 'final-letters'),
-  makeFullWordLevel('גן', ['ג', 'ן'], 'final-letters'),
-  makeFullWordLevel('עץ', ['ע', 'ץ'], 'final-letters'),
-  makeFullWordLevel('מלך', ['מ', 'ל', 'ך'], 'final-letters'),
-]
+const REVIEW_VOWELS: readonly VowelId[] = ['patah', 'hiriq', 'segol', 'holam', 'shuruk']
 
-const patahQamatsUnits: VowelPart[] = [
-  { letter: 'ב', vowel: 'patah' },
-  { letter: 'מ', vowel: 'patah' },
-  { letter: 'ח', vowel: 'qamats' },
-  { letter: 'ל', vowel: 'qamats' },
-  { letter: 'ד', vowel: 'patah' },
-  { letter: 'י', vowel: 'qamats' },
-  { letter: 'א', vowel: 'patah' },
-  { letter: 'א', vowel: 'qamats' },
-  { letter: 'ג', vowel: 'patah' },
-  { letter: 'ג', vowel: 'qamats' },
-  { letter: 'ה', vowel: 'patah' },
-  { letter: 'ה', vowel: 'qamats' },
-  { letter: 'ו', vowel: 'patah' },
-  { letter: 'ז', vowel: 'qamats' },
-  { letter: 'ט', vowel: 'patah' },
-  { letter: 'כ', vowel: 'qamats' },
-  { letter: 'נ', vowel: 'patah' },
-  { letter: 'ס', vowel: 'qamats' },
-  { letter: 'ע', vowel: 'patah' },
-  { letter: 'פ', vowel: 'qamats' },
-  { letter: 'צ', vowel: 'patah' },
-  { letter: 'ק', vowel: 'qamats' },
-  { letter: 'ר', vowel: 'patah' },
-  { letter: 'ש', vowel: 'qamats' },
-]
-
-const hiriqUnits: VowelPart[] = [
-  'ב',
-  'מ',
-  'ד',
-  'ג',
-  'ח',
-  'ל',
-  'י',
-  'נ',
-  'ס',
-  'פ',
-  'ש',
-  'ר',
-  'ט',
-  'כ',
-  'צ',
-  'ק',
-].map((letter) => ({ letter, vowel: 'hiriq' }))
-
-const tsereSegolUnits: VowelPart[] = [
-  { letter: 'ב', vowel: 'tsere' },
-  { letter: 'מ', vowel: 'segol' },
-  { letter: 'ד', vowel: 'tsere' },
-  { letter: 'ג', vowel: 'segol' },
-  { letter: 'ח', vowel: 'tsere' },
-  { letter: 'ל', vowel: 'segol' },
-  { letter: 'י', vowel: 'segol' },
-  { letter: 'נ', vowel: 'tsere' },
-  { letter: 'ס', vowel: 'tsere' },
-  { letter: 'פ', vowel: 'segol' },
-  { letter: 'ש', vowel: 'segol' },
-  { letter: 'ר', vowel: 'tsere' },
-  { letter: 'ט', vowel: 'segol' },
-  { letter: 'כ', vowel: 'tsere' },
-  { letter: 'צ', vowel: 'segol' },
-  { letter: 'ק', vowel: 'tsere' },
-  { letter: 'ע', vowel: 'tsere' },
-  { letter: 'ה', vowel: 'segol' },
-  { letter: 'ו', vowel: 'tsere' },
-  { letter: 'ז', vowel: 'segol' },
-]
-
-const holamUnits: VowelPart[] = [
-  'א',
-  'ב',
-  'ד',
-  'ג',
-  'ח',
-  'ל',
-  'מ',
-  'נ',
-  'ס',
-  'פ',
-  'ש',
-  'ר',
-  'ט',
-  'כ',
-  'צ',
-  'ק',
-].map((letter) => ({ letter, vowel: 'holam' }))
-
-const qubutsShurukUnits: VowelPart[] = [
-  { letter: 'ב', vowel: 'qubuts' },
-  { letter: 'מ', vowel: 'qubuts' },
-  { letter: 'ד', vowel: 'qubuts' },
-  { letter: 'ג', vowel: 'qubuts' },
-  { letter: 'ח', vowel: 'qubuts' },
-  { letter: 'ל', vowel: 'qubuts' },
-  { letter: 'ס', vowel: 'qubuts' },
-  { letter: 'פ', vowel: 'qubuts' },
-  { letter: 'ש', vowel: 'qubuts' },
-  { letter: 'ר', vowel: 'qubuts' },
-  { letter: 'ב', vowel: 'shuruk' },
-  { letter: 'מ', vowel: 'shuruk' },
-  { letter: 'ד', vowel: 'shuruk' },
-  { letter: 'ג', vowel: 'shuruk' },
-  { letter: 'ח', vowel: 'shuruk' },
-  { letter: 'ש', vowel: 'shuruk' },
-  { letter: 'צ', vowel: 'shuruk' },
-  { letter: 'ק', vowel: 'shuruk' },
-]
-
-const mixedAieWords: WordBankEntry[] = [
-  ...WORD_BANKS['patah-qamats'],
-  ...WORD_BANKS.hiriq.slice(0, 4),
-  ...WORD_BANKS['tsere-segol'].slice(0, 4),
-]
-
-const mixedOuWords: WordBankEntry[] = [
-  ...WORD_BANKS.holam,
-  ...WORD_BANKS['qubuts-shuruk'].slice(0, 4),
-]
-
-const firstReadingWords: WordBankEntry[] = [
-  ...WORD_BANKS['patah-qamats'],
-  ...WORD_BANKS.hiriq.slice(0, 4),
-  ...WORD_BANKS['tsere-segol'].slice(0, 4),
-  ...WORD_BANKS.holam.slice(0, 4),
-  ...WORD_BANKS['qubuts-shuruk'].slice(0, 4),
-]
-
-WORD_BANKS['mixed-a-i-e'] = mixedAieWords
-WORD_BANKS['mixed-o-u'] = mixedOuWords
-WORD_BANKS['first-reading'] = firstReadingWords
-
-const levelDrafts: LevelDraft[] = [
-  ...letterLevels,
-  ...finalLetterLevels,
-  ...makeSyllableSeries('patah-qamats', patahQamatsUnits.slice(0, 20)),
-  ...WORD_BANKS['patah-qamats'].map((entry) => makeNikkudWordLevel(entry, 'patah-qamats')),
-  ...makeSyllableSeries('hiriq', hiriqUnits),
-  ...WORD_BANKS.hiriq.map((entry) => makeNikkudWordLevel(entry, 'hiriq')),
-  ...makeSyllableSeries('tsere-segol', tsereSegolUnits),
-  ...WORD_BANKS['tsere-segol'].map((entry) => makeNikkudWordLevel(entry, 'tsere-segol')),
-  ...makeSyllableSeries('holam', holamUnits),
-  ...WORD_BANKS.holam.map((entry) => makeNikkudWordLevel(entry, 'holam')),
-  ...makeSyllableSeries('qubuts-shuruk', qubutsShurukUnits),
-  ...WORD_BANKS['qubuts-shuruk'].map((entry) => makeNikkudWordLevel(entry, 'qubuts-shuruk')),
-  ...makeSyllableSeries('mixed-a-i-e', REVIEW_SETS['mixed-a-i-e'].slice(0, 10)),
-  ...mixedAieWords.slice(0, 10).map((entry) => makeNikkudWordLevel(entry, 'mixed-a-i-e')),
-  ...makeSyllableSeries('mixed-o-u', REVIEW_SETS['mixed-o-u'].slice(0, 7)),
-  ...mixedOuWords.slice(0, 7).map((entry) => makeNikkudWordLevel(entry, 'mixed-o-u')),
-  ...firstReadingWords.slice(0, 10).map((entry) => makeNikkudWordLevel(entry, 'first-reading')),
-]
-
-const expectedCategoryCounts: Record<CategoryId, number> = {
-  letters: 36,
-  'final-letters': 18,
-  'patah-qamats': 24,
-  hiriq: 22,
-  'tsere-segol': 28,
-  holam: 22,
-  'qubuts-shuruk': 26,
-  'mixed-a-i-e': 20,
-  'mixed-o-u': 14,
-  'first-reading': 10,
+const SPIRAL_WORDS: Record<CategoryId, readonly WordBankEntry[]> = {
+  'first-letters': [
+    { word: 'אִמָא', parts: [{ letter: 'א', vowel: 'hiriq' }, { letter: 'מ', vowel: 'qamats' }, { letter: 'א' }], distractors: [{ letter: 'ב', vowel: 'patah' }] },
+    { word: 'בָא', parts: [{ letter: 'ב', vowel: 'qamats' }, { letter: 'א' }], distractors: [{ letter: 'מ', vowel: 'hiriq' }] },
+  ],
+  'first-sounds': [
+    { word: 'דַג', parts: [{ letter: 'ד', vowel: 'patah' }, { letter: 'ג' }], distractors: [{ letter: 'ב', vowel: 'patah' }] },
+    { word: 'יָד', parts: [{ letter: 'י', vowel: 'qamats' }, { letter: 'ד' }], distractors: [{ letter: 'מ', vowel: 'qamats' }] },
+    { word: 'מִי', parts: [{ letter: 'מ', vowel: 'hiriq' }, { letter: 'י' }], distractors: [{ letter: 'ד', vowel: 'hiriq' }] },
+  ],
+  'more-letters': [
+    { word: 'חָלָב', parts: [{ letter: 'ח', vowel: 'qamats' }, { letter: 'ל', vowel: 'qamats' }, { letter: 'ב' }], distractors: [{ letter: 'מ', vowel: 'patah' }] },
+    { word: 'לֵב', parts: [{ letter: 'ל', vowel: 'tsere' }, { letter: 'ב' }], distractors: [{ letter: 'ח', vowel: 'segol' }] },
+    { word: 'הִיא', parts: [{ letter: 'ה', vowel: 'hiriq' }, { letter: 'י' }, { letter: 'א' }], distractors: [{ letter: 'ל', vowel: 'hiriq' }] },
+  ],
+  'new-sounds': [
+    { word: 'זָז', parts: [{ letter: 'ז', vowel: 'qamats' }, { letter: 'ז' }], distractors: [{ letter: 'ט', vowel: 'hiriq' }] },
+    { word: 'טוּט', parts: [{ letter: 'ט', vowel: 'shuruk' }, { letter: 'ט' }], distractors: [{ letter: 'ז', vowel: 'qubuts' }] },
+    { word: 'וָו', parts: [{ letter: 'ו', vowel: 'qamats' }, { letter: 'ו' }], distractors: [{ letter: 'ד', vowel: 'patah' }] },
+  ],
+  'full-sounds': [
+    ...WORD_BANKS.hiriq.slice(0, 3),
+    ...WORD_BANKS['tsere-segol'].slice(0, 3),
+    ...WORD_BANKS['qubuts-shuruk'].slice(0, 2),
+  ],
+  'letter-review': [
+    ...WORD_BANKS.holam.slice(0, 4),
+    ...WORD_BANKS['qubuts-shuruk'].slice(4, 8),
+  ],
+  'final-letters': [],
+  'first-words': [
+    ...WORD_BANKS['patah-qamats'],
+    ...WORD_BANKS.hiriq.slice(0, 4),
+    ...WORD_BANKS['tsere-segol'].slice(0, 5),
+    ...WORD_BANKS.holam.slice(0, 4),
+    ...WORD_BANKS['qubuts-shuruk'].slice(0, 5),
+  ],
+  'reading-together': [
+    ...WORD_BANKS['patah-qamats'],
+    ...WORD_BANKS.hiriq.slice(0, 2),
+    ...WORD_BANKS['tsere-segol'].slice(0, 3),
+    ...WORD_BANKS.holam.slice(0, 2),
+    ...WORD_BANKS['qubuts-shuruk'].slice(0, 3),
+  ],
 }
+
+function regularDistractors(letter: string, allowedLetters: readonly string[]) {
+  return allowedLetters.filter((candidate) => candidate !== letter).slice(0, 2)
+}
+
+function vowelUnits(letters: readonly string[], vowels: readonly VowelId[]) {
+  return letters.flatMap((letter) => vowels.map((vowel) => ({ letter, vowel })))
+}
+
+function cyclingUnit(units: readonly VowelPart[], index: number) {
+  return units[index % units.length]
+}
+
+function addSyllableLevel(
+  levels: LevelDraft[],
+  categoryId: CategoryId,
+  unit: VowelPart,
+  unitPool: readonly VowelPart[],
+  learningFocus: LearningFocus,
+  suffix: string,
+) {
+  const index = Math.max(0, unitPool.findIndex((candidate) => candidate.letter === unit.letter && candidate.vowel === unit.vowel))
+  levels.push(
+    makeSyllableLevel(
+      unit.letter,
+      unit.vowel,
+      distractorsFor(unit, unitPool, index),
+      categoryId,
+      learningFocus,
+      suffix,
+    ),
+  )
+}
+
+function buildSoundSection(section: CurriculumSection) {
+  const levels: LevelDraft[] = []
+  const allUnits = vowelUnits(section.introducedLetters, section.vowels)
+  const newUnits = vowelUnits(section.newLetters.length ? section.newLetters : section.introducedLetters, section.vowels)
+
+  section.newLetters.forEach((letter, index) => {
+    levels.push(
+      makeLetterLevel(
+        letter,
+        regularDistractors(letter, section.introducedLetters),
+        section.id,
+        `${section.id}-${index + 1}`,
+        section.id === 'letter-review' ? 'letter-sound' : 'letter',
+      ),
+    )
+  })
+
+  newUnits.forEach((unit, index) => {
+    if (levels.length >= section.expectedLevelCount) return
+    addSyllableLevel(levels, section.id, unit, allUnits, 'vowel-sound', `ladder-${index + 1}`)
+  })
+
+  REVIEW_VOWELS.filter((vowel) => section.vowels.includes(vowel)).forEach((vowel, index) => {
+    if (levels.length >= section.expectedLevelCount) return
+    const reviewUnits = section.introducedLetters.map((letter) => ({ letter, vowel }))
+    addSyllableLevel(levels, section.id, cyclingUnit(reviewUnits, index), reviewUnits, 'same-vowel-review', `same-${vowel}`)
+  })
+
+  SPIRAL_WORDS[section.id].forEach((entry, index) => {
+    if (levels.length >= section.expectedLevelCount) return
+    levels.push(makeNikkudWordLevel(entry, section.id, 'word-build', `pod-${index + 1}`))
+  })
+
+  let index = 0
+  while (levels.length < section.expectedLevelCount) {
+    const unit = cyclingUnit(allUnits, index)
+    addSyllableLevel(levels, section.id, unit, allUnits, 'mixed-sound-review', `review-${index + 1}`)
+    index += 1
+  }
+
+  return levels
+}
+
+function buildFinalLetterLevels(section: CurriculumSection) {
+  const levels: LevelDraft[] = []
+  const words = [
+    { word: 'ים', missingIndex: 1, distractors: ['י', 'מ'] },
+    { word: 'גן', missingIndex: 1, distractors: ['ג', 'נ'] },
+    { word: 'אף', missingIndex: 1, distractors: ['א', 'פ'] },
+    { word: 'עץ', missingIndex: 1, distractors: ['ע', 'צ'] },
+    { word: 'מלך', missingIndex: 2, distractors: ['כ', 'מ'] },
+    { word: 'כנף', missingIndex: 2, distractors: ['פ', 'נ'] },
+    { word: 'סוף', missingIndex: 2, distractors: ['פ', 'ס'] },
+    { word: 'קיץ', missingIndex: 2, distractors: ['צ', 'ק'] },
+    { word: 'רך', missingIndex: 1, distractors: ['כ', 'ר'] },
+  ]
+
+  section.newLetters.forEach((letter, index) => {
+    levels.push(makeLetterLevel(letter, regularDistractors(letter, section.introducedLetters), section.id, `final-${index + 1}`, 'final-letter'))
+  })
+  words.forEach((entry) => levels.push(makeMissingWordLevel(entry.word, entry.missingIndex, entry.distractors, section.id, 'final-letter')))
+  ;[
+    ['ים', ['י', 'ם']],
+    ['גן', ['ג', 'ן']],
+    ['עץ', ['ע', 'ץ']],
+    ['מלך', ['מ', 'ל', 'ך']],
+    ['כנף', ['כ', 'נ', 'ף']],
+    ['סוף', ['ס', 'ו', 'ף']],
+    ['קיץ', ['ק', 'י', 'ץ']],
+    ['רך', ['ר', 'ך']],
+    ['אף', ['א', 'ף']],
+    ['ספר', ['ס', 'פ', 'ר']],
+    ['חלב', ['ח', 'ל', 'ב']],
+  ].forEach(([word, letters], index) => {
+    if (levels.length < section.expectedLevelCount) {
+      levels.push(makeFullWordLevel(word as string, letters as string[], section.id, index < 5 ? 'final-letter' : 'mixed-sound-review'))
+    }
+  })
+
+  return levels
+}
+
+function buildWordSection(section: CurriculumSection) {
+  const levels: LevelDraft[] = []
+  const allUnits = vowelUnits(section.introducedLetters, section.vowels)
+  const words = SPIRAL_WORDS[section.id]
+
+  words.forEach((entry, index) => {
+    if (levels.length >= section.expectedLevelCount) return
+    levels.push(makeNikkudWordLevel(entry, section.id, section.id === 'first-words' ? 'word-build' : 'mixed-sound-review', `word-${index + 1}`))
+  })
+
+  words.forEach((entry, index) => {
+    if (levels.length >= section.expectedLevelCount) return
+    const word = stripNikkud(entry.word)
+    const distractor = stripNikkud(words[(index + 1) % words.length].word)
+    if (word !== distractor) {
+      levels.push(makeSightWordLevel(word, distractor, section.id, 'mixed-sound-review'))
+    }
+  })
+
+  let index = 0
+  while (levels.length < section.expectedLevelCount) {
+    const unit = cyclingUnit(allUnits, index * 3 + 1)
+    addSyllableLevel(levels, section.id, unit, allUnits, 'mixed-sound-review', `reading-review-${index + 1}`)
+    index += 1
+  }
+
+  return levels
+}
+
+function buildCurriculum() {
+  return CURRICULUM_SECTIONS.flatMap((section) => {
+    if (section.id === 'final-letters') return buildFinalLetterLevels(section)
+    if (section.id === 'first-words' || section.id === 'reading-together') return buildWordSection(section)
+    return buildSoundSection(section)
+  })
+}
+
+const levelDrafts: LevelDraft[] = buildCurriculum()
+
+export const expectedCategoryCounts: Record<CategoryId, number> = Object.fromEntries(
+  CURRICULUM_SECTIONS.map((section) => [section.id, section.expectedLevelCount]),
+) as Record<CategoryId, number>
 
 function assertCurriculumShape(drafts: readonly LevelDraft[]) {
   const ids = new Set<string>()
@@ -970,12 +1085,27 @@ export function getChoicePlacementSoundId(choice: Choice) {
   return choice.soundId
 }
 
-export const RECORDED_AUDIO_ASSETS: Record<string, string[]> = {}
+export function hasRecordedAudio(soundId: string) {
+  return Boolean(RECORDED_AUDIO_ASSETS[soundId]?.length)
+}
+
+export function getChoiceHoldSoundId(choice: Choice) {
+  if (choice.kind === 'letter') {
+    return `he_hold_letter_${slugForLetter(choice.text)}`
+  }
+
+  return choice.soundId
+}
+
+export const RECORDED_AUDIO_ASSETS: Record<string, string[]> = Object.fromEntries(
+  AUDIO_SAMPLE_CLIPS.map((clip) => [clip.soundId, [clip.src]]),
+)
 
 function soundIdsForLevel(level: Level) {
   return [
     level.completionAudioId,
     ...level.choices.map((choice) => choice.soundId),
+    ...level.choices.map((choice) => getChoiceHoldSoundId(choice)),
     ...level.target.slots.map((slot) => slot.soundId),
   ]
 }
