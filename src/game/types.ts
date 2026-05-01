@@ -56,12 +56,14 @@ export type Category = {
 }
 
 export type VoiceIntensity = 'calm' | 'jumpy' | 'extra'
+export type SuccessFanfare = 'sparkle' | 'climb' | 'dance' | 'chime'
 
 export type GameSettings = {
   muted: boolean
   volume: number
   reducedMotion: boolean
   voiceIntensity: VoiceIntensity
+  successFanfare: SuccessFanfare
 }
 
 export type Slot = {

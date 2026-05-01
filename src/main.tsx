@@ -9,7 +9,7 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register('/sw.js').then(async (registration) => {
       const resourceUrls = performance
@@ -22,5 +22,16 @@ if ('serviceWorker' in navigator) {
         urls: [window.location.href, ...resourceUrls],
       })
     })
+  })
+}
+
+if ('serviceWorker' in navigator && import.meta.env.DEV) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.getRegistrations().then((registrations) =>
+      Promise.all(registrations.map((registration) => registration.unregister())),
+    )
+    if ('caches' in window) {
+      void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+    }
   })
 }

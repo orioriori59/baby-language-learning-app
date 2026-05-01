@@ -1,12 +1,39 @@
-const CACHE_NAME = 'ivrit-ktana-v1'
+const CACHE_NAME = 'ivrit-ktana-v2'
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg']
+const IS_LOCAL_DEV =
+  self.location.hostname === 'localhost' ||
+  self.location.hostname === '127.0.0.1' ||
+  self.location.hostname === '::1'
 
 self.addEventListener('install', (event) => {
+  if (IS_LOCAL_DEV) {
+    event.waitUntil(
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+        .then(() => self.registration.unregister()),
+    )
+    self.skipWaiting()
+    return
+  }
+
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)))
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
+  if (IS_LOCAL_DEV) {
+    event.waitUntil(
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+        .then(() => self.registration.unregister())
+        .then(() => self.clients.matchAll({ type: 'window' }))
+        .then((clients) => clients.forEach((client) => client.navigate(client.url))),
+    )
+    return
+  }
+
   event.waitUntil(
     caches
       .keys()
@@ -19,6 +46,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
+  if (IS_LOCAL_DEV) {
+    event.respondWith(fetch(event.request))
+    return
+  }
 
   if (event.request.mode === 'navigate') {
     event.respondWith(

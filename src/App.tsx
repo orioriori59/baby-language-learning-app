@@ -38,7 +38,7 @@ import {
   gameReducer,
   isLevelComplete,
 } from './game/gameReducer'
-import type { Choice, GameSettings, Slot } from './game/types'
+import type { Choice, GameSettings, Slot, SuccessFanfare } from './game/types'
 import { SoundController } from './game/SoundController'
 import { findBestSlot } from './game/matching'
 
@@ -195,7 +195,6 @@ function App() {
   const [feedbackBurst, setFeedbackBurst] = useState<FeedbackBurst | null>(null)
   const [successBurst, setSuccessBurst] = useState<SuccessBurst | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [parentGateStarted, setParentGateStarted] = useState(false)
   const [entryLevelId, setEntryLevelId] = useState<string | null>(null)
   const [choiceOrder, setChoiceOrder] = useState<string[]>(() =>
     createChoiceOrder(progress.lastLevelId),
@@ -203,13 +202,11 @@ function App() {
   const dragRef = useRef<DragState | null>(null)
   const slotRefs = useRef<Record<string, HTMLSpanElement | null>>({})
   const trayRefs = useRef<Record<string, HTMLButtonElement | null>>({})
-  const gateTimer = useRef<number | null>(null)
-  const gatePointer = useRef<number | null>(null)
-  const gateRect = useRef<DOMRect | null>(null)
   const dragTimer = useRef<number | null>(null)
   const dragReturnTimer = useRef<number | null>(null)
   const feedbackTimer = useRef<number | null>(null)
   const successBurstTimer = useRef<number | null>(null)
+  const successOriginRef = useRef<{ x: number; y: number } | null>(null)
   const dragId = useRef(0)
   const closeSettingsRef = useRef<HTMLButtonElement | null>(null)
   const sound = useRef<SoundController | null>(null)
@@ -293,6 +290,7 @@ function App() {
   const startLevel = useCallback(
     (levelId = recommendedLevelId) => {
       sound.current?.unlock()
+      successOriginRef.current = null
       setEntryLevelId(null)
       setChoiceOrder((current) => createChoiceOrder(levelId, current))
       setProgress((current) => ({ ...current, lastLevelId: levelId }))
@@ -303,12 +301,14 @@ function App() {
 
   const returnToPath = useCallback(() => {
     sound.current?.stopHold()
+    successOriginRef.current = null
     setDrag(null)
     dispatch(createHomeGameState(progress.lastLevelId))
   }, [progress.lastLevelId])
 
   const restartPack = useCallback(() => {
     const nextProgress = { lastLevelId: LEVELS[0].id, completedLevelIds: [] }
+    successOriginRef.current = null
     setChoiceOrder((current) => createChoiceOrder(LEVELS[0].id, current))
     setProgress(nextProgress)
     dispatch(createInitialGameState(LEVELS[0].id))
@@ -337,6 +337,11 @@ function App() {
     setSettings((current) => ({ ...current, ...patch }))
   }, [])
 
+  const previewSuccessFanfare = useCallback((variant: SuccessFanfare) => {
+    sound.current?.unlock()
+    sound.current?.play(`fx_level_success_${variant}`)
+  }, [])
+
   const showFailureFeedback = useCallback((x: number, y: number) => {
     if (feedbackTimer.current) {
       window.clearTimeout(feedbackTimer.current)
@@ -354,6 +359,10 @@ function App() {
   }, [])
 
   const completionPoint = useCallback(() => {
+    if (successOriginRef.current) {
+      return successOriginRef.current
+    }
+
     const rects = Object.values(slotRefs.current)
       .filter((element): element is HTMLSpanElement => Boolean(element))
       .map((element) => element.getBoundingClientRect())
@@ -385,44 +394,6 @@ function App() {
       setSuccessBurst(null)
     }, 1250)
   }, [completionPoint])
-
-  const cancelParentGate = () => {
-    setParentGateStarted(false)
-    gatePointer.current = null
-    gateRect.current = null
-    if (gateTimer.current) {
-      window.clearTimeout(gateTimer.current)
-      gateTimer.current = null
-    }
-  }
-
-  const onParentGateDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    event.currentTarget.setPointerCapture(event.pointerId)
-    gatePointer.current = event.pointerId
-    gateRect.current = event.currentTarget.getBoundingClientRect()
-    setParentGateStarted(true)
-    gateTimer.current = window.setTimeout(() => {
-      setIsSettingsOpen(true)
-      setParentGateStarted(false)
-      gatePointer.current = null
-      gateRect.current = null
-    }, 1600)
-  }
-
-  const onParentGateMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (gatePointer.current !== event.pointerId || !gateRect.current) return
-    const rect = gateRect.current
-    const padding = 10
-    const isInside =
-      event.clientX >= rect.left - padding &&
-      event.clientX <= rect.right + padding &&
-      event.clientY >= rect.top - padding &&
-      event.clientY <= rect.bottom + padding
-
-    if (!isInside) {
-      cancelParentGate()
-    }
-  }
 
   const onPointerDown = (
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -525,6 +496,7 @@ function App() {
       sound.current?.stopHold()
 
       if (nearest) {
+        successOriginRef.current = { x: dropX, y: dropY }
         sound.current?.play('fx_success')
         sound.current?.play(getChoicePlacementSoundId(choice), { placement: true })
         dispatch((current) =>
@@ -604,6 +576,16 @@ function App() {
     }
 
     sound.current?.unlock()
+    const slotElement = slotRefs.current[openSlot.id]
+    if (slotElement) {
+      const rect = slotElement.getBoundingClientRect()
+      successOriginRef.current = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      }
+    } else {
+      successOriginRef.current = completionPoint()
+    }
     sound.current?.play('fx_success')
     sound.current?.play(getChoicePlacementSoundId(choice), { placement: true })
     dispatch((current) =>
@@ -622,7 +604,7 @@ function App() {
     sound.current?.play('fx_level_success')
     let wordTimer: number | null = null
     if (level.completionAudioId.startsWith('he_word_')) {
-      wordTimer = window.setTimeout(() => sound.current?.play(level.completionAudioId), 820)
+      wordTimer = window.setTimeout(() => sound.current?.play(level.completionAudioId), 1700)
     }
 
     const timer = window.setTimeout(() => {
@@ -650,6 +632,7 @@ function App() {
     }
 
     setProgress((current) => ({ ...current, lastLevelId: nextLevelId }))
+    successOriginRef.current = null
     setChoiceOrder((current) => createChoiceOrder(nextLevelId, current))
     dispatch(createInitialGameState(nextLevelId))
   }, [gameState.levelId])
@@ -725,15 +708,11 @@ function App() {
               </strong>
             </div>
             <button
-              className={`icon-button parent-gate ${parentGateStarted ? 'holding' : ''}`}
+              className="icon-button parent-gate"
               type="button"
-              onPointerDown={onParentGateDown}
-              onPointerMove={onParentGateMove}
-              onPointerUp={cancelParentGate}
-              onPointerCancel={cancelParentGate}
-              onLostPointerCapture={cancelParentGate}
-              aria-label="לחצו לחיצה ארוכה להגדרות"
-              title="לחיצה ארוכה להגדרות"
+              onClick={() => setIsSettingsOpen(true)}
+              aria-label="הגדרות"
+              title="הגדרות"
             >
               <Settings aria-hidden="true" />
             </button>
@@ -850,6 +829,7 @@ function App() {
         <SettingsPanel
           settings={settings}
           onChange={updateSettings}
+          onPreviewSuccessFanfare={previewSuccessFanfare}
           onClose={() => setIsSettingsOpen(false)}
           onRestart={restartPack}
           closeRef={closeSettingsRef}
@@ -1123,14 +1103,7 @@ function CompletionDialog({ levelId, onContinue }: { levelId: string; onContinue
   return (
     <div className="modal-layer completion-layer" role="presentation">
       <section className="complete-card" role="dialog" aria-modal="true" aria-labelledby="complete-title">
-        <div className="confetti" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-          <i />
-        </div>
+        <CardConfetti />
         <div className="complete-banner" id="complete-title">
           כל הכבוד!
         </div>
@@ -1167,6 +1140,16 @@ function CompletionDialog({ levelId, onContinue }: { levelId: string; onContinue
   )
 }
 
+function CardConfetti() {
+  return (
+    <div className="card-confetti" aria-hidden="true">
+      {Array.from({ length: 12 }, (_, index) => (
+        <i key={index} />
+      ))}
+    </div>
+  )
+}
+
 function CompletionBurst({ burst }: { burst: SuccessBurst }) {
   return (
     <div
@@ -1180,7 +1163,7 @@ function CompletionBurst({ burst }: { burst: SuccessBurst }) {
       }
       aria-hidden="true"
     >
-      {Array.from({ length: 18 }, (_, index) => (
+      {Array.from({ length: 24 }, (_, index) => (
         <i key={index} />
       ))}
     </div>
@@ -1218,6 +1201,7 @@ function TargetWord({ slots, slotState, choices, slotRefs }: TargetWordProps) {
 type SettingsPanelProps = {
   settings: GameSettings
   onChange: (patch: Partial<GameSettings>) => void
+  onPreviewSuccessFanfare: (variant: SuccessFanfare) => void
   onClose: () => void
   onRestart: () => void
   closeRef: React.MutableRefObject<HTMLButtonElement | null>
@@ -1226,10 +1210,18 @@ type SettingsPanelProps = {
 function SettingsPanel({
   settings,
   onChange,
+  onPreviewSuccessFanfare,
   onClose,
   onRestart,
   closeRef,
 }: SettingsPanelProps) {
+  const fanfares: Array<{ id: SuccessFanfare; label: string }> = [
+    { id: 'sparkle', label: 'ניצוץ' },
+    { id: 'climb', label: 'עלייה' },
+    { id: 'dance', label: 'ריקוד' },
+    { id: 'chime', label: 'פעמון' },
+  ]
+
   return (
     <div className="settings-backdrop" role="presentation">
       <section
@@ -1302,6 +1294,29 @@ function SettingsPanel({
               {mode === 'calm' ? 'רגוע' : mode === 'jumpy' ? 'קופצני' : 'חזק'}
             </button>
           ))}
+        </div>
+
+        <div className="fanfare-preview" aria-label="בחירת צליל הצלחה">
+          <div>
+            <strong>צליל הצלחה</strong>
+            <span>בחרו מנגינה קצרה לסיום שלב</span>
+          </div>
+          <div className="fanfare-options">
+            {fanfares.map((fanfare) => (
+              <button
+                key={fanfare.id}
+                type="button"
+                className={settings.successFanfare === fanfare.id ? 'selected' : ''}
+                onClick={() => {
+                  onChange({ successFanfare: fanfare.id })
+                  onPreviewSuccessFanfare(fanfare.id)
+                }}
+              >
+                <Play aria-hidden="true" />
+                {fanfare.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button className="restart-button" type="button" onClick={onRestart}>

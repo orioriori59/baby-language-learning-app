@@ -1,7 +1,8 @@
 import { AUDIO_ASSETS } from './content'
-import type { GameSettings } from './types'
+import type { GameSettings, SuccessFanfare } from './types'
 
 const HOLD_INTERVAL_MS = 470
+type Tone = { frequency: number; start: number; duration: number; type: OscillatorType }
 
 export class SoundController {
   private audioContext: AudioContext | null = null
@@ -133,8 +134,13 @@ export class SoundController {
       return
     }
 
-    if (soundId === 'fx_word_complete' || soundId === 'fx_level_success') {
-      this.playFanfareEffect()
+    if (
+      soundId === 'fx_word_complete' ||
+      soundId === 'fx_level_success' ||
+      soundId.startsWith('fx_level_success_')
+    ) {
+      const requested = soundId.replace('fx_level_success_', '') as SuccessFanfare
+      this.playFanfareEffect(soundId.startsWith('fx_level_success_') ? requested : undefined)
       return
     }
 
@@ -146,31 +152,86 @@ export class SoundController {
     }
   }
 
-  private playFanfareEffect() {
-    this.playToneSequence([
-      { frequency: 523.25, start: 0, duration: 0.1, type: 'triangle' },
-      { frequency: 659.25, start: 0.09, duration: 0.1, type: 'triangle' },
-      { frequency: 783.99, start: 0.18, duration: 0.12, type: 'triangle' },
-      { frequency: 1046.5, start: 0.3, duration: 0.15, type: 'sine' },
-      { frequency: 880, start: 0.46, duration: 0.1, type: 'triangle' },
-      { frequency: 783.99, start: 0.55, duration: 0.1, type: 'triangle' },
-      { frequency: 1046.5, start: 0.64, duration: 0.26, type: 'sine' },
-      { frequency: 1318.51, start: 0.68, duration: 0.22, type: 'sine' },
-    ], 0.3)
+  private playFanfareEffect(variant: SuccessFanfare = this.settings.successFanfare) {
+    const fanfares: Record<SuccessFanfare, { melody: Tone[]; harmony: Tone[]; sparkle: Tone[] }> = {
+      sparkle: {
+        melody: [
+          { frequency: 523.25, start: 0, duration: 0.24, type: 'sine' },
+          { frequency: 659.25, start: 0.2, duration: 0.24, type: 'sine' },
+          { frequency: 783.99, start: 0.42, duration: 0.28, type: 'triangle' },
+          { frequency: 1046.5, start: 0.68, duration: 0.36, type: 'sine' },
+          { frequency: 987.77, start: 1.02, duration: 0.18, type: 'sine' },
+          { frequency: 1174.66, start: 1.16, duration: 0.26, type: 'sine' },
+        ],
+        harmony: [
+          { frequency: 329.63, start: 0, duration: 0.56, type: 'sine' },
+          { frequency: 392, start: 0.56, duration: 0.42, type: 'sine' },
+          { frequency: 523.25, start: 0.98, duration: 0.42, type: 'sine' },
+        ],
+        sparkle: [
+          { frequency: 1567.98, start: 0.78, duration: 0.12, type: 'sine' },
+          { frequency: 2093, start: 1.22, duration: 0.14, type: 'sine' },
+        ],
+      },
+      climb: {
+        melody: [
+          { frequency: 392, start: 0, duration: 0.22, type: 'sine' },
+          { frequency: 493.88, start: 0.18, duration: 0.22, type: 'sine' },
+          { frequency: 587.33, start: 0.36, duration: 0.24, type: 'sine' },
+          { frequency: 783.99, start: 0.58, duration: 0.3, type: 'triangle' },
+          { frequency: 987.77, start: 0.86, duration: 0.26, type: 'sine' },
+          { frequency: 1174.66, start: 1.08, duration: 0.36, type: 'sine' },
+        ],
+        harmony: [
+          { frequency: 246.94, start: 0, duration: 0.48, type: 'sine' },
+          { frequency: 293.66, start: 0.48, duration: 0.46, type: 'sine' },
+          { frequency: 392, start: 0.94, duration: 0.48, type: 'sine' },
+        ],
+        sparkle: [
+          { frequency: 1567.98, start: 1.18, duration: 0.14, type: 'sine' },
+        ],
+      },
+      dance: {
+        melody: [
+          { frequency: 659.25, start: 0, duration: 0.22, type: 'sine' },
+          { frequency: 783.99, start: 0.18, duration: 0.22, type: 'sine' },
+          { frequency: 659.25, start: 0.36, duration: 0.2, type: 'sine' },
+          { frequency: 987.77, start: 0.56, duration: 0.3, type: 'triangle' },
+          { frequency: 880, start: 0.86, duration: 0.22, type: 'sine' },
+          { frequency: 1046.5, start: 1.06, duration: 0.36, type: 'sine' },
+        ],
+        harmony: [
+          { frequency: 329.63, start: 0, duration: 0.44, type: 'sine' },
+          { frequency: 392, start: 0.44, duration: 0.42, type: 'sine' },
+          { frequency: 523.25, start: 0.86, duration: 0.52, type: 'sine' },
+        ],
+        sparkle: [
+          { frequency: 1318.51, start: 0.64, duration: 0.12, type: 'sine' },
+          { frequency: 1760, start: 1.12, duration: 0.13, type: 'sine' },
+        ],
+      },
+      chime: {
+        melody: [
+          { frequency: 783.99, start: 0, duration: 0.28, type: 'sine' },
+          { frequency: 1046.5, start: 0.24, duration: 0.32, type: 'sine' },
+          { frequency: 1318.51, start: 0.54, duration: 0.34, type: 'sine' },
+          { frequency: 1567.98, start: 0.9, duration: 0.48, type: 'sine' },
+        ],
+        harmony: [
+          { frequency: 392, start: 0, duration: 0.72, type: 'sine' },
+          { frequency: 523.25, start: 0.72, duration: 0.66, type: 'sine' },
+        ],
+        sparkle: [
+          { frequency: 2093, start: 0.62, duration: 0.16, type: 'sine' },
+          { frequency: 2637.02, start: 1.02, duration: 0.18, type: 'sine' },
+        ],
+      },
+    }
 
-    this.playToneSequence([
-      { frequency: 261.63, start: 0, duration: 0.26, type: 'sine' },
-      { frequency: 329.63, start: 0.3, duration: 0.28, type: 'sine' },
-      { frequency: 392, start: 0.62, duration: 0.34, type: 'sine' },
-    ], 0.12)
-
-    window.setTimeout(() => {
-      this.playToneSequence([
-        { frequency: 1567.98, start: 0, duration: 0.045, type: 'sine' },
-        { frequency: 2093, start: 0.08, duration: 0.055, type: 'sine' },
-        { frequency: 2637.02, start: 0.18, duration: 0.075, type: 'triangle' },
-      ], 0.14)
-    }, 360)
+    const fanfare = fanfares[variant] ?? fanfares.sparkle
+    this.playToneSequence(fanfare.melody, 0.22)
+    this.playToneSequence(fanfare.harmony, 0.1)
+    this.playToneSequence(fanfare.sparkle, 0.08)
   }
 
   private playFailureEffect() {
@@ -231,13 +292,17 @@ export class SoundController {
 
       oscillator.type = tone.type
       oscillator.frequency.setValueAtTime(tone.frequency, start)
+      const attack = Math.min(0.055, Math.max(0.025, tone.duration * 0.24))
+      const release = Math.min(0.14, Math.max(0.055, tone.duration * 0.42))
+      const releaseStart = Math.max(start + attack + 0.015, end - release)
       gain.gain.setValueAtTime(0.0001, start)
-      gain.gain.exponentialRampToValueAtTime(1, start + 0.015)
+      gain.gain.exponentialRampToValueAtTime(0.78, start + attack)
+      gain.gain.setValueAtTime(0.78, releaseStart)
       gain.gain.exponentialRampToValueAtTime(0.0001, end)
       oscillator.connect(gain)
       gain.connect(master)
       oscillator.start(start)
-      oscillator.stop(end + 0.02)
+      oscillator.stop(end + 0.04)
     }
   }
 }

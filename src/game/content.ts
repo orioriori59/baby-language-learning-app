@@ -46,6 +46,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
     typeof window !== 'undefined' &&
     Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
   voiceIntensity: 'jumpy',
+  successFanfare: 'sparkle',
 }
 
 export const CATEGORIES: Category[] = [
