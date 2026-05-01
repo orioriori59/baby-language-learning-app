@@ -129,10 +129,7 @@ export class SoundController {
     if (!this.audioContext || !soundId.startsWith('fx_')) return
 
     if (soundId === 'fx_retry' || soundId === 'fx_failure') {
-      this.playToneSequence([
-        { frequency: 220, start: 0, duration: 0.11, type: 'sawtooth' },
-        { frequency: 150, start: 0.1, duration: 0.16, type: 'sawtooth' },
-      ], 0.24)
+      this.playFailureEffect()
       return
     }
 
@@ -151,6 +148,45 @@ export class SoundController {
         { frequency: 784, start: 0.06, duration: 0.12, type: 'triangle' },
       ], 0.22)
     }
+  }
+
+  private playFailureEffect() {
+    if (!this.audioContext) return
+
+    const now = this.audioContext.currentTime
+    const master = this.audioContext.createGain()
+    master.gain.setValueAtTime(this.settings.volume * 0.2, now)
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.42)
+    master.connect(this.audioContext.destination)
+
+    const chirp = this.audioContext.createOscillator()
+    const chirpGain = this.audioContext.createGain()
+    chirp.type = 'triangle'
+    chirp.frequency.setValueAtTime(420, now)
+    chirp.frequency.exponentialRampToValueAtTime(540, now + 0.055)
+    chirp.frequency.exponentialRampToValueAtTime(250, now + 0.18)
+    chirp.detune.setValueAtTime(0, now)
+    chirp.detune.linearRampToValueAtTime(-38, now + 0.18)
+    chirpGain.gain.setValueAtTime(0.0001, now)
+    chirpGain.gain.exponentialRampToValueAtTime(0.95, now + 0.018)
+    chirpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2)
+    chirp.connect(chirpGain)
+    chirpGain.connect(master)
+    chirp.start(now)
+    chirp.stop(now + 0.23)
+
+    const bounce = this.audioContext.createOscillator()
+    const bounceGain = this.audioContext.createGain()
+    bounce.type = 'sine'
+    bounce.frequency.setValueAtTime(170, now + 0.15)
+    bounce.frequency.exponentialRampToValueAtTime(105, now + 0.34)
+    bounceGain.gain.setValueAtTime(0.0001, now + 0.14)
+    bounceGain.gain.exponentialRampToValueAtTime(0.72, now + 0.18)
+    bounceGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.36)
+    bounce.connect(bounceGain)
+    bounceGain.connect(master)
+    bounce.start(now + 0.14)
+    bounce.stop(now + 0.38)
   }
 
   private playToneSequence(
